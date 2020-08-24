@@ -9,6 +9,7 @@
 #include "gridmap.h"
 #include "gridmap_expansion_policy.h"
 #include "jps_expansion_policy.h"
+#include "jps_expansion_policy_prune.h"
 #include "jps2_expansion_policy.h"
 #include "jpsplus_expansion_policy.h"
 #include "jps2plus_expansion_policy.h"
@@ -33,6 +34,7 @@ int verbose = 0;
 int print_help = 0;
 // treat the map as a weighted-cost grid
 int wgm = 0;
+int prune = 0;
 
 void
 help()
@@ -253,6 +255,52 @@ run_jps(warthog::scenario_manager& scenmgr)
 }
 
 void
+run_jps_prune(warthog::scenario_manager& scenmgr)
+{
+    warthog::gridmap map(scenmgr.get_experiment(0)->map().c_str());
+	warthog::jps_expansion_policy_prune expander(&map);
+	warthog::octile_heuristic heuristic(map.width(), map.height());
+
+	warthog::flexible_astar<
+		warthog::octile_heuristic,
+	   	warthog::jps_expansion_policy_prune> astar(&heuristic, &expander);
+	astar.set_verbose(verbose);
+
+  expander.get_locator()->active_prune = prune;
+	std::cout << "id\talg\texpd\tgend\ttouched\ttime\tcost\tscnt\tsfile\n";
+  long long tot = 0;
+	for(unsigned int i=0; i < scenmgr.num_experiments(); i++)
+	{
+		warthog::experiment* exp = scenmgr.get_experiment(i);
+
+    expander.get_locator()->scan_cnt = 0;
+
+		int startid = exp->starty() * exp->mapwidth() + exp->startx();
+		int goalid = exp->goaly() * exp->mapwidth() + exp->goalx();
+		double len = astar.get_length(
+				map.to_padded_id(startid),
+			   	map.to_padded_id(goalid));
+		if(len == warthog::INF)
+		{
+			len = 0;
+		}
+
+		std::cout << i<<"\t" << "jps" << "\t" 
+		<< astar.get_nodes_expanded() << "\t" 
+		<< astar.get_nodes_generated() << "\t"
+		<< astar.get_nodes_touched() << "\t"
+		<< astar.get_search_time()  << "\t"
+		<< len << "\t" 
+    << expander.get_locator()->scan_cnt << "\t"
+		<< scenmgr.last_file_loaded() << std::endl;
+
+    tot += expander.get_locator()->scan_cnt;
+		check_optimality(len, exp);
+	}
+	std::cerr << "done. total memory: "<< astar.mem() + scenmgr.mem() << ", tot scan: " << tot << "\n";
+}
+
+void
 run_astar(warthog::scenario_manager& scenmgr)
 {
     warthog::gridmap map(scenmgr.get_experiment(0)->map().c_str());
@@ -379,7 +427,8 @@ main(int argc, char** argv)
 		{"help", no_argument, &print_help, 1},
 		{"checkopt",  no_argument, &checkopt, 1},
 		{"verbose",  no_argument, &verbose, 1},
-		{"wgm",  no_argument, &wgm, 1}
+		{"wgm",  no_argument, &wgm, 1},
+    {"prune", no_argument, &prune, 1}
 	};
 
 	warthog::util::cfg cfg;
@@ -431,10 +480,15 @@ main(int argc, char** argv)
 		run_jps2plus(scenmgr);
 	}
 
-    if(alg == "jps")
-    {
-        run_jps(scenmgr);
-    }
+  if(alg == "jps")
+  {
+      run_jps(scenmgr);
+  }
+
+  if(alg == "jps-prune") 
+  {
+    run_jps_prune(scenmgr);
+  }
 
 	if(alg == "astar")
 	{
