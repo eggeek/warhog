@@ -5,7 +5,9 @@
 #include <cassert>
 #include <climits>
 
-warthog::online_jump_point_locator_prune::online_jump_point_locator_prune(warthog::gridmap* map)
+using JPL=warthog::online_jump_point_locator_prune;
+
+JPL::online_jump_point_locator_prune(warthog::gridmap* map)
 	: map_(map)//, jumplimit_(UINT32_MAX)
 {
 	rmap_ = create_rmap();
@@ -14,7 +16,7 @@ warthog::online_jump_point_locator_prune::online_jump_point_locator_prune(wartho
   scan_cnt = 0;
 }
 
-warthog::online_jump_point_locator_prune::~online_jump_point_locator_prune()
+JPL::~online_jump_point_locator_prune()
 {
 	delete rmap_;
 }
@@ -22,7 +24,7 @@ warthog::online_jump_point_locator_prune::~online_jump_point_locator_prune()
 // create a copy of the grid map which is rotated by 90 degrees clockwise.
 // this version will be used when jumping North or South. 
 warthog::gridmap*
-warthog::online_jump_point_locator_prune::create_rmap()
+JPL::create_rmap()
 {
 	uint32_t maph = map_->header_height();
 	uint32_t mapw = map_->header_width();
@@ -52,7 +54,7 @@ warthog::online_jump_point_locator_prune::create_rmap()
 //
 // @return: the id of a jump point successor or warthog::INF if no jp exists.
 void
-warthog::online_jump_point_locator_prune::jump(warthog::jps::direction d,
+JPL::jump(warthog::jps::direction d,
 	   	uint32_t node_id, uint32_t goal_id, uint32_t& jumpnode_id, 
 		warthog::cost_t& jumpcost)
 {
@@ -87,59 +89,62 @@ warthog::online_jump_point_locator_prune::jump(warthog::jps::direction d,
 	}
 }
 
-void
-warthog::online_jump_point_locator_prune::jump_north(uint32_t node_id, 
+uint32_t
+JPL::jump_north(uint32_t node_id, 
 		uint32_t goal_id, uint32_t& jumpnode_id, warthog::cost_t& jumpcost)
 {
 	node_id = this->map_id_to_rmap_id(node_id);
 	goal_id = this->map_id_to_rmap_id(goal_id);
   this->rmapflag = true;
-	__jump_north(node_id, goal_id, jumpnode_id, jumpcost, rmap_);
+	uint32_t res = __jump_north(node_id, goal_id, jumpnode_id, jumpcost, rmap_);
 	jumpnode_id = this->rmap_id_to_map_id(jumpnode_id);
+  return res;
 }
 
-void
-warthog::online_jump_point_locator_prune::__jump_north(uint32_t node_id, 
+uint32_t
+JPL::__jump_north(uint32_t node_id, 
 		uint32_t goal_id, uint32_t& jumpnode_id, warthog::cost_t& jumpcost,
 		warthog::gridmap* mymap)
 {
 	// jumping north in the original map is the same as jumping
 	// east when we use a version of the map rotated 90 degrees.
-	__jump_east(node_id, goal_id, jumpnode_id, jumpcost, rmap_);
+	return __jump_east(node_id, goal_id, jumpnode_id, jumpcost, rmap_);
 }
 
-void
-warthog::online_jump_point_locator_prune::jump_south(uint32_t node_id, 
+uint32_t
+JPL::jump_south(uint32_t node_id,
 		uint32_t goal_id, uint32_t& jumpnode_id, warthog::cost_t& jumpcost)
 {
+
 	node_id = this->map_id_to_rmap_id(node_id);
 	goal_id = this->map_id_to_rmap_id(goal_id);
   this->rmapflag = true;
-	__jump_south(node_id, goal_id, jumpnode_id, jumpcost, rmap_);
+	uint32_t res = __jump_south(node_id, goal_id, jumpnode_id, jumpcost, rmap_);
 	jumpnode_id = this->rmap_id_to_map_id(jumpnode_id);
+  return res;
 }
 
-void
-warthog::online_jump_point_locator_prune::__jump_south(uint32_t node_id, 
+uint32_t
+JPL::__jump_south(uint32_t node_id, 
 		uint32_t goal_id, uint32_t& jumpnode_id, warthog::cost_t& jumpcost,
 		warthog::gridmap* mymap)
 {
 	// jumping north in the original map is the same as jumping
 	// west when we use a version of the map rotated 90 degrees.
-	__jump_west(node_id, goal_id, jumpnode_id, jumpcost, rmap_);
+	return __jump_west(node_id, goal_id, jumpnode_id, jumpcost, rmap_);
 }
 
-void
-warthog::online_jump_point_locator_prune::jump_east(uint32_t node_id, 
+uint32_t
+JPL::jump_east(uint32_t node_id, 
 		uint32_t goal_id, uint32_t& jumpnode_id, warthog::cost_t& jumpcost)
 {
   this->rmapflag = false;
-	__jump_east(node_id, goal_id, jumpnode_id, jumpcost, map_);
+	return __jump_east(node_id, goal_id, jumpnode_id, jumpcost, map_);
 }
 
 
-void
-warthog::online_jump_point_locator_prune::__jump_east(uint32_t node_id, 
+uint32_t
+JPL::__jump_east(uint32_t node_id, 
 		uint32_t goal_id, uint32_t& jumpnode_id, warthog::cost_t& jumpcost, 
 		warthog::gridmap* mymap)
 {
@@ -193,7 +198,7 @@ warthog::online_jump_point_locator_prune::__jump_east(uint32_t node_id,
 	{
 		jumpnode_id = goal_id;
 		jumpcost = goal_dist * warthog::ONE;
-		return;
+		return goal_dist;
 	}
 
 	if(deadend)
@@ -205,20 +210,21 @@ warthog::online_jump_point_locator_prune::__jump_east(uint32_t node_id,
 		jumpnode_id = warthog::INF;
 	}
 	jumpcost = num_steps * warthog::ONE;
+  return num_steps;
 	
 }
 
 // analogous to ::jump_east 
-void
-warthog::online_jump_point_locator_prune::jump_west(uint32_t node_id, 
+uint32_t
+JPL::jump_west(uint32_t node_id, 
 		uint32_t goal_id, uint32_t& jumpnode_id, warthog::cost_t& jumpcost)
 {
   this->rmapflag = false;
-	__jump_west(node_id, goal_id, jumpnode_id, jumpcost, map_);
+	return __jump_west(node_id, goal_id, jumpnode_id, jumpcost, map_);
 }
 
-void
-warthog::online_jump_point_locator_prune::__jump_west(uint32_t node_id, 
+uint32_t
+JPL::__jump_west(uint32_t node_id, 
 		uint32_t goal_id, uint32_t& jumpnode_id, warthog::cost_t& jumpcost, 
 		warthog::gridmap* mymap)
 {
@@ -263,7 +269,7 @@ warthog::online_jump_point_locator_prune::__jump_west(uint32_t node_id,
 	{
 		jumpnode_id = goal_id;
 		jumpcost = goal_dist * warthog::ONE;
- 		return;
+ 		return goal_dist;
 	}
 
 	if(deadend)
@@ -275,10 +281,11 @@ warthog::online_jump_point_locator_prune::__jump_west(uint32_t node_id,
 		jumpnode_id = warthog::INF;
 	}
 	jumpcost = num_steps * warthog::ONE;
+  return num_steps;
 }
 
 void
-warthog::online_jump_point_locator_prune::jump_northeast(uint32_t node_id,
+JPL::jump_northeast(uint32_t node_id,
 	   	uint32_t goal_id, uint32_t& jumpnode_id, warthog::cost_t& jumpcost)
 {
 	uint32_t num_steps = 0;
@@ -327,7 +334,7 @@ warthog::online_jump_point_locator_prune::jump_northeast(uint32_t node_id,
 }
 
 void
-warthog::online_jump_point_locator_prune::jump_northwest(uint32_t node_id, 
+JPL::jump_northwest(uint32_t node_id, 
 		uint32_t goal_id, uint32_t& jumpnode_id, warthog::cost_t& jumpcost)
 {
 	uint32_t num_steps = 0;
@@ -374,7 +381,7 @@ warthog::online_jump_point_locator_prune::jump_northwest(uint32_t node_id,
 }
 
 void
-warthog::online_jump_point_locator_prune::jump_southeast(uint32_t node_id, 
+JPL::jump_southeast(uint32_t node_id, 
 		uint32_t goal_id, uint32_t& jumpnode_id, warthog::cost_t& jumpcost)
 {
 	uint32_t num_steps = 0;
@@ -423,7 +430,7 @@ warthog::online_jump_point_locator_prune::jump_southeast(uint32_t node_id,
 }
 
 void
-warthog::online_jump_point_locator_prune::jump_southwest(uint32_t node_id, 
+JPL::jump_southwest(uint32_t node_id, 
 		uint32_t goal_id, uint32_t& jumpnode_id, warthog::cost_t& jumpcost)
 {
 	uint32_t num_steps = 0;
