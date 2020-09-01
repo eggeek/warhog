@@ -40,8 +40,8 @@ warthog::jps_expansion_policy_prune::expand(
 		{
 			warthog::cost_t jumpcost;
 			uint32_t succ_id;
-      jpl_->cur = current;
-      jpl_->rmapflag = false;
+      jpl_->jpruner.cur = current;
+      jpl_->jpruner.rmapflag = false;
 			jpl_->jump(d, current_id, goal_id, succ_id, jumpcost);
 
 			if(succ_id != warthog::INF)

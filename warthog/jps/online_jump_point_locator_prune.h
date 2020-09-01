@@ -15,6 +15,7 @@
 #include "jps.h"
 #include "gridmap.h"
 #include "search_node.h"
+#include "online_jps_pruner.h"
 #include <vector>
 
 namespace warthog
@@ -23,13 +24,7 @@ namespace warthog
 class online_jump_point_locator_prune 
 {
   public: 
-    typedef std::pair<uint32_t, warthog::cost_t> pic;
-    bool rmapflag;
-    bool gvalue_prune;
-    bool jlimit_prune;
-    uint32_t scan_cnt;
-    warthog::search_node* cur;
-    std::vector<pic> vis;
+    online_jps_pruner jpruner;
 
     online_jump_point_locator_prune(warthog::gridmap* map);
     ~online_jump_point_locator_prune();
@@ -116,43 +111,17 @@ class online_jump_point_locator_prune
       return map_->to_padded_id(x, y);
     }
 
-    inline bool
-    is_pruned(uint32_t jumpnode_id, uint32_t goal_id, warthog::cost_t c) {
-      if (!gvalue_prune) return false;
-
-      if (this->rmapflag) jumpnode_id = rmap_id_to_map_id(jumpnode_id);
-      if (vis[jumpnode_id].first != goal_id || vis[jumpnode_id].second == 0) {
-        vis[jumpnode_id] = {goal_id, c + cur->get_g()};
-        return false;
-      }
-      else {
-        if (c + cur->get_g() >= vis[jumpnode_id].second) {
-          return true;
-        }
-        vis[jumpnode_id] = {goal_id, c + cur->get_g()};
-        return false;
-      }
-    }
-
     warthog::gridmap*
     create_rmap();
 
     warthog::gridmap* map_;
     warthog::gridmap* rmap_;
-    uint32_t jumplimit_;
 
-    struct JumpTracker {
-      uint32_t jumpdist;
-      enum EndType {
-        forced,     // ended at a forced neighbour
-        deadend,    // ended at a deadend
-        pruned,     // ended by pruning strategy
-        reached     // ended at target
-      };
-      EndType etype;
-    };
-
-    JumpTracker jt;
+    inline bool
+    gValPruned(uint32_t jumpnode_id, uint32_t goal_id, warthog::cost_t cost) {
+      if (jpruner.rmapflag) jumpnode_id = rmap_id_to_map_id(jumpnode_id);
+      return jpruner.gValPruned(jumpnode_id, goal_id, cost);
+    }
 };
 
 }

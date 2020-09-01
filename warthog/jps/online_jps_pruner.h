@@ -35,6 +35,10 @@ class online_jps_pruner {
     inline void set_pruned() { this->etype = pruned; }
     inline void set_deadend() { this->etype = deadend; }
     inline void set_reached() { this->etype = reached; }
+    inline bool is_forced() { return this->etype == forced; }
+    inline bool is_pruned() { return this->etype == pruned; }
+    inline bool is_deadend() { return this->etype == deadend; }
+    inline bool is_reached() { return this->etype == reached; }
 
     inline bool
     gValPruned(uint32_t jumpnode_id, uint32_t goal_id, warthog::cost_t c) {
