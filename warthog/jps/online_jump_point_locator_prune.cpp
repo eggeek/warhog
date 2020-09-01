@@ -178,6 +178,9 @@ JPL::__jump_east(uint32_t node_id,
       uint32_t stop_pos = __builtin_ffs(stop_bits)-1; // returns idx+1
       jumpnode_id += stop_pos; 
       deadend = deadend_bits & (1 << stop_pos);
+      jt.jumpdist = node_id - jumpnode_id;
+      if (deadend) jt.etype = JumpTracker::EndType::deadend;
+      else jt.etype = JumpTracker::EndType::reached;
       break;
     }
 
@@ -187,15 +190,25 @@ JPL::__jump_east(uint32_t node_id,
     // neighbour that we don't want to miss.
     jumpnode_id += 1;
     this->scan_cnt++;
-    if (this->is_pruned(
-          jumpnode_id, goal_id, (jumpnode_id - node_id) * warthog::ONE))
+
+    jt.jumpdist = (jumpnode_id - node_id);
+    if (this->is_pruned(jumpnode_id, goal_id, jt.jumpdist * warthog::ONE)) {
+      jt.etype = JumpTracker::EndType::pruned;
       break;
+    }
+    std::cerr << "jlimit: " << this->jumplimit_ << std::endl;
+    if (this->gvalue_prune && jt.jumpdist >= this->jumplimit_) {
+      jt.etype = JumpTracker::EndType::pruned;
+      break;
+    }
   }
 
   uint32_t num_steps = jumpnode_id - node_id;
   uint32_t goal_dist = goal_id - node_id;
   if(num_steps > goal_dist)
   {
+    jt.jumpdist = goal_dist;
+    jt.etype = JumpTracker::EndType::reached;
     jumpnode_id = goal_id;
     jumpcost = goal_dist * warthog::ONE;
     return goal_dist;
@@ -207,6 +220,7 @@ JPL::__jump_east(uint32_t node_id,
     // correct here since we just inverted neis[1] and then
     // looked for the first set bit. need -1 to fix it.
     num_steps -= (1 && num_steps);
+    jt.jumpdist = num_steps;
     jumpnode_id = warthog::INF;
   }
   jumpcost = num_steps * warthog::ONE;
@@ -252,21 +266,34 @@ JPL::__jump_west(uint32_t node_id,
       uint32_t stop_pos = __builtin_clz(stop_bits);
       jumpnode_id -= stop_pos;
       deadend = deadend_bits & (0x80000000 >> stop_pos);
+      jt.jumpdist = node_id - jumpnode_id;
+      if (deadend) jt.etype = JumpTracker::EndType::deadend;
+      else jt.etype = JumpTracker::EndType::reached;
       break;
     }
     // jump to the end of cache. jumping +32 involves checking
     // for forced neis between adjacent sets of contiguous tiles
     jumpnode_id -= 1;
     this->scan_cnt++;
-    if (this->is_pruned(
-          jumpnode_id, goal_id, (node_id - jumpnode_id) * warthog::ONE))
+
+    jt.jumpdist = (node_id - jumpnode_id);
+    if (this->is_pruned(jumpnode_id, goal_id, jt.jumpdist * warthog::ONE)) {
+      jt.etype = JumpTracker::EndType::pruned;
       break;
+    }
+    std::cerr << "jlimit: " << this->jumplimit_ << std::endl;
+    if (this->jlimit_prune && jt.jumpdist >= this->jumplimit_) {
+      jt.etype = JumpTracker::EndType::pruned;
+      break;
+    }
   }
 
   uint32_t num_steps = node_id - jumpnode_id;
   uint32_t goal_dist = node_id - goal_id;
   if(num_steps > goal_dist)
   {
+    jt.jumpdist = goal_dist;
+    jt.etype = JumpTracker::EndType::reached;
     jumpnode_id = goal_id;
     jumpcost = goal_dist * warthog::ONE;
     return goal_dist;
@@ -278,6 +305,7 @@ JPL::__jump_west(uint32_t node_id,
     // correct here since we just inverted neis[1] and then
     // counted leading zeroes. need -1 to fix it.
     num_steps -= (1 && num_steps);
+    jt.jumpdist = num_steps;
     jumpnode_id = warthog::INF;
   }
   jumpcost = num_steps * warthog::ONE;
@@ -305,6 +333,7 @@ JPL::jump_northeast(uint32_t node_id,
   uint32_t rnext_id = map_id_to_rmap_id(next_id);
   uint32_t rgoal_id = map_id_to_rmap_id(goal_id);
   uint32_t rmapw = rmap_->width();
+  uint32_t jlimith = warthog::INF, jlimitv = warthog::INF;
   while(true)
   {
     num_steps++;
@@ -319,11 +348,18 @@ JPL::jump_northeast(uint32_t node_id,
     uint32_t jp_id1, jp_id2;
     warthog::cost_t cost1, cost2;
     this->rmapflag = true;
+    this->jumplimit_ = jlimitv;
     __jump_north(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     if(jp_id1 != warthog::INF) { break; }
+    if (jt.etype == JumpTracker::EndType::deadend) jlimitv = warthog::INF;
+    else jlimitv = jt.jumpdist - 1;
+
+    this->jumplimit_ = jlimith;
     this->rmapflag = false;
     __jump_east(next_id, goal_id, jp_id2, cost2, map_);
     if(jp_id2 != warthog::INF) { break; }
+    if (jt.etype == JumpTracker::EndType::deadend) jlimith = warthog::INF;
+    else jlimith = jt.jumpdist - 1;
 
     // couldn't move in either straight dir; node_id is an obstacle
     if(!(cost1 && cost2)) { next_id = warthog::INF; break; }
@@ -353,6 +389,7 @@ JPL::jump_northwest(uint32_t node_id,
   uint32_t rnext_id = map_id_to_rmap_id(next_id);
   uint32_t rgoal_id = map_id_to_rmap_id(goal_id);
   uint32_t rmapw = rmap_->width();
+  uint32_t jlimith = warthog::INF, jlimitv = warthog::INF;
   while(true)
   {
     num_steps++;
@@ -367,11 +404,18 @@ JPL::jump_northwest(uint32_t node_id,
     uint32_t jp_id1, jp_id2;
     warthog::cost_t cost1, cost2;
     this->rmapflag = true;
+    this->jumplimit_ = jlimitv;
     __jump_north(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     if(jp_id1 != warthog::INF) { break; }
+    if (jt.etype == JumpTracker::EndType::deadend) jlimitv = warthog::INF;
+    else jlimitv = jt.jumpdist - 1;
+
+    this->jumplimit_ = jlimith;
     this->rmapflag = false;
     __jump_west(next_id, goal_id, jp_id2, cost2, map_);
     if(jp_id2 != warthog::INF) { break; }
+    if (jt.etype == JumpTracker::EndType::deadend) jlimith = warthog::INF;
+    else jlimith = jt.jumpdist - 1;
 
     // couldn't move in either straight dir; node_id is an obstacle
     if(!(cost1 && cost2)) { next_id = warthog::INF; break; }
@@ -401,6 +445,7 @@ JPL::jump_southeast(uint32_t node_id,
   uint32_t rnext_id = map_id_to_rmap_id(next_id);
   uint32_t rgoal_id = map_id_to_rmap_id(goal_id);
   uint32_t rmapw = rmap_->width();
+  uint32_t jlimith = warthog::INF, jlimitv = warthog::INF;
   while(true)
   {
     num_steps++;
@@ -416,11 +461,18 @@ JPL::jump_southeast(uint32_t node_id,
     uint32_t jp_id1, jp_id2;
     warthog::cost_t cost1, cost2;
     this->rmapflag = true;
+    this->jumplimit_ = jlimitv;
     __jump_south(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     if(jp_id1 != warthog::INF) { break; }
+    if (jt.etype == JumpTracker::EndType::deadend) jlimitv = warthog::INF;
+    else jlimitv = jt.jumpdist - 1;
+
+    this->jumplimit_ = jlimith;
     this->rmapflag = false;
     __jump_east(next_id, goal_id, jp_id2, cost2, map_);
     if(jp_id2 != warthog::INF) { break; }
+    if (jt.etype == JumpTracker::EndType::deadend) jlimith = warthog::INF;
+    else jlimith = jt.jumpdist - 1;
 
     // couldn't move in either straight dir; node_id is an obstacle
     if(!(cost1 && cost2)) { next_id = warthog::INF; break; }
@@ -449,6 +501,7 @@ JPL::jump_southwest(uint32_t node_id,
   uint32_t rnext_id = map_id_to_rmap_id(next_id);
   uint32_t rgoal_id = map_id_to_rmap_id(goal_id);
   uint32_t rmapw = rmap_->width();
+  uint32_t jlimith = warthog::INF, jlimitv = warthog::INF;
   while(true)
   {
     num_steps++;
@@ -463,11 +516,18 @@ JPL::jump_southwest(uint32_t node_id,
     uint32_t jp_id1, jp_id2;
     warthog::cost_t cost1, cost2;
     this->rmapflag = true;
+    this->jumplimit_ = jlimitv;
     __jump_south(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     if(jp_id1 != warthog::INF) { break; }
+    if (jt.etype == JumpTracker::EndType::deadend) jlimitv = warthog::INF;
+    else jlimitv = jt.jumpdist - 1;
+
+    this->jumplimit_ = jlimith;
     this->rmapflag = false;
     __jump_west(next_id, goal_id, jp_id2, cost2, map_);
     if(jp_id2 != warthog::INF) { break; }
+    if (jt.etype == JumpTracker::EndType::deadend) jlimith = warthog::INF;
+    else jlimith = jt.jumpdist - 1;
 
     // couldn't move in either straight dir; node_id is an obstacle
     if(!(cost1 && cost2)) { next_id = warthog::INF; break; }

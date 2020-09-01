@@ -34,7 +34,8 @@ int verbose = 0;
 int print_help = 0;
 // treat the map as a weighted-cost grid
 int wgm = 0;
-int prune = 0;
+int gprune = 0;
+int jlimit = 0;
 
 void
 help()
@@ -265,8 +266,9 @@ run_jps_prune(warthog::scenario_manager& scenmgr)
 		warthog::octile_heuristic,
 	   	warthog::jps_expansion_policy_prune> astar(&heuristic, &expander);
 	astar.set_verbose(verbose);
-
-  expander.get_locator()->active_prune = prune;
+  std::cerr << "gprune: " << gprune << " , jlimit: " << jlimit << std::endl;
+  expander.get_locator()->gvalue_prune = gprune;
+  expander.get_locator()->jlimit_prune = jlimit;
 	std::cout << "id\talg\texpd\tgend\ttouched\ttime\tcost\tscnt\tsfile\n";
   long long tot = 0;
 	for(unsigned int i=0; i < scenmgr.num_experiments(); i++)
@@ -428,7 +430,8 @@ main(int argc, char** argv)
 		{"checkopt",  no_argument, &checkopt, 1},
 		{"verbose",  no_argument, &verbose, 1},
 		{"wgm",  no_argument, &wgm, 1},
-    {"prune", no_argument, &prune, 1}
+    {"gprune", no_argument, &gprune, 1},
+    {"jlimit", no_argument, &jlimit, 1},
 	};
 
 	warthog::util::cfg cfg;

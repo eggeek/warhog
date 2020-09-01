@@ -25,7 +25,8 @@ class online_jump_point_locator_prune
   public: 
     typedef std::pair<uint32_t, warthog::cost_t> pic;
     bool rmapflag;
-    bool active_prune;
+    bool gvalue_prune;
+    bool jlimit_prune;
     uint32_t scan_cnt;
     warthog::search_node* cur;
     std::vector<pic> vis;
@@ -117,7 +118,7 @@ class online_jump_point_locator_prune
 
     inline bool
     is_pruned(uint32_t jumpnode_id, uint32_t goal_id, warthog::cost_t c) {
-      if (!active_prune) return false;
+      if (!gvalue_prune) return false;
 
       if (this->rmapflag) jumpnode_id = rmap_id_to_map_id(jumpnode_id);
       if (vis[jumpnode_id].first != goal_id || vis[jumpnode_id].second == 0) {
@@ -139,6 +140,19 @@ class online_jump_point_locator_prune
     warthog::gridmap* map_;
     warthog::gridmap* rmap_;
     uint32_t jumplimit_;
+
+    struct JumpTracker {
+      uint32_t jumpdist;
+      enum EndType {
+        forced,     // ended at a forced neighbour
+        deadend,    // ended at a deadend
+        pruned,     // ended by pruning strategy
+        reached     // ended at target
+      };
+      EndType etype;
+    };
+
+    JumpTracker jt;
 };
 
 }
