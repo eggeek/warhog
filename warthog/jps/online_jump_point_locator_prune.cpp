@@ -176,7 +176,7 @@ JPL::__jump_east(uint32_t node_id,
       uint32_t stop_pos = __builtin_ffs(stop_bits)-1; // returns idx+1
       jumpnode_id += stop_pos; 
       deadend = deadend_bits & (1 << stop_pos);
-      jpruner.jumpdist = node_id - jumpnode_id;
+      jpruner.jumpdist = jumpnode_id - node_id;
       if (deadend) jpruner.set_deadend();
       else jpruner.set_forced();
       break;
