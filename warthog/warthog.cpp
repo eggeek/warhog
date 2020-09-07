@@ -11,6 +11,7 @@
 #include "jps_expansion_policy.h"
 #include "jps_expansion_policy_prune.h"
 #include "jps2_expansion_policy.h"
+#include "jps2_expansion_policy_prune.h"
 #include "jpsplus_expansion_policy.h"
 #include "jps2plus_expansion_policy.h"
 #include "octile_heuristic.h"
@@ -303,6 +304,46 @@ run_jps_prune(warthog::scenario_manager& scenmgr)
 }
 
 void
+run_jps2_prune(warthog::scenario_manager& scenmgr)
+{
+    warthog::gridmap map(scenmgr.get_experiment(0)->map().c_str());
+	warthog::jps2_expansion_policy_prune expander(&map);
+	warthog::octile_heuristic heuristic(map.width(), map.height());
+
+	warthog::flexible_astar<
+		warthog::octile_heuristic,
+	   	warthog::jps2_expansion_policy_prune> astar(&heuristic, &expander);
+	astar.set_verbose(verbose);
+	std::cout << "id\talg\texpd\tgend\ttouched\ttime\tcost\tsfile\n";
+	for(unsigned int i=0; i < scenmgr.num_experiments(); i++)
+	{
+		warthog::experiment* exp = scenmgr.get_experiment(i);
+
+
+		int startid = exp->starty() * exp->mapwidth() + exp->startx();
+		int goalid = exp->goaly() * exp->mapwidth() + exp->goalx();
+		double len = astar.get_length(
+				map.to_padded_id(startid),
+			   	map.to_padded_id(goalid));
+		if(len == warthog::INF)
+		{
+			len = 0;
+		}
+
+		std::cout << i<<"\t" << "jps" << "\t" 
+		<< astar.get_nodes_expanded() << "\t" 
+		<< astar.get_nodes_generated() << "\t"
+		<< astar.get_nodes_touched() << "\t"
+		<< astar.get_search_time()  << "\t"
+		<< len << "\t" 
+		<< scenmgr.last_file_loaded() << std::endl;
+
+		check_optimality(len, exp);
+	}
+	std::cerr << "done. total memory: "<< astar.mem() + scenmgr.mem() <<  "\n";
+}
+
+void
 run_astar(warthog::scenario_manager& scenmgr)
 {
     warthog::gridmap map(scenmgr.get_experiment(0)->map().c_str());
@@ -491,6 +532,10 @@ main(int argc, char** argv)
   if(alg == "jps-prune") 
   {
     run_jps_prune(scenmgr);
+  }
+
+  if (alg == "jps2-prune") {
+    run_jps2_prune(scenmgr);
   }
 
 	if(alg == "astar")
