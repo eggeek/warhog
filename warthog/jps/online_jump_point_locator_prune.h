@@ -24,7 +24,7 @@ namespace warthog
 class online_jump_point_locator_prune 
 {
   public: 
-    online_jps_pruner jpruner;
+    online_jps_pruner* jpruner;
 
     online_jump_point_locator_prune(warthog::gridmap* map);
     ~online_jump_point_locator_prune();
@@ -121,8 +121,8 @@ class online_jump_point_locator_prune
     inline bool
     gValPruned(uint32_t jumpnode_id, uint32_t goal_id, warthog::cost_t cost) {
       if (!gprune) return false;
-      if (jpruner.rmapflag) jumpnode_id = rmap_id_to_map_id(jumpnode_id);
-      return jpruner.gValPruned(jumpnode_id, goal_id, cost);
+      if (jpruner->rmapflag) jumpnode_id = rmap_id_to_map_id(jumpnode_id);
+      return jpruner->gValPruned(jumpnode_id, goal_id, cost);
     }
 };
 

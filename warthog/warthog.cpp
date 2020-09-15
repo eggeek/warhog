@@ -275,7 +275,7 @@ run_jps_prune(warthog::scenario_manager& scenmgr)
 	{
 		warthog::experiment* exp = scenmgr.get_experiment(i);
 
-    expander.get_locator()->jpruner.scan_cnt = 0;
+    expander.get_locator()->jpruner->scan_cnt = 0;
 
 		int startid = exp->starty() * exp->mapwidth() + exp->startx();
 		int goalid = exp->goaly() * exp->mapwidth() + exp->goalx();
@@ -293,10 +293,10 @@ run_jps_prune(warthog::scenario_manager& scenmgr)
 		<< astar.get_nodes_touched() << "\t"
 		<< astar.get_search_time()  << "\t"
 		<< len << "\t" 
-    << expander.get_locator()->jpruner.scan_cnt << "\t"
+    << expander.get_locator()->jpruner->scan_cnt << "\t"
 		<< scenmgr.last_file_loaded() << std::endl;
 
-    tot += expander.get_locator()->jpruner.scan_cnt;
+    tot += expander.get_locator()->jpruner->scan_cnt;
 		check_optimality(len, exp);
 	}
 	std::cerr << "done. total memory: "<< astar.mem() + scenmgr.mem() << ", tot scan: " << tot << "\n";

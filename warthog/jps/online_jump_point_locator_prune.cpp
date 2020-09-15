@@ -11,7 +11,7 @@ JPL::online_jump_point_locator_prune(warthog::gridmap* map)
   : map_(map)//, jumplimit_(UINT32_MAX)
 {
   rmap_ = create_rmap();
-  jpruner.init(map_->height() * map_->width());
+  jpruner->init(map_->height() * map_->width());
 }
 
 JPL::~online_jump_point_locator_prune()
@@ -93,7 +93,7 @@ JPL::jump_north(uint32_t node_id,
 {
   node_id = this->map_id_to_rmap_id(node_id);
   goal_id = this->map_id_to_rmap_id(goal_id);
-  this->jpruner.rmapflag = true;
+  this->jpruner->rmapflag = true;
   uint32_t res = __jump_north(node_id, goal_id, jumpnode_id, jumpcost, rmap_);
   jumpnode_id = this->rmap_id_to_map_id(jumpnode_id);
   return res;
@@ -116,7 +116,7 @@ JPL::jump_south(uint32_t node_id,
 
   node_id = this->map_id_to_rmap_id(node_id);
   goal_id = this->map_id_to_rmap_id(goal_id);
-  this->jpruner.rmapflag = true;
+  this->jpruner->rmapflag = true;
   uint32_t res = __jump_south(node_id, goal_id, jumpnode_id, jumpcost, rmap_);
   jumpnode_id = this->rmap_id_to_map_id(jumpnode_id);
   return res;
@@ -136,7 +136,7 @@ uint32_t
 JPL::jump_east(uint32_t node_id, 
     uint32_t goal_id, uint32_t& jumpnode_id, warthog::cost_t& jumpcost)
 {
-  this->jpruner.rmapflag = false;
+  this->jpruner->rmapflag = false;
   return __jump_east(node_id, goal_id, jumpnode_id, jumpcost, map_);
 }
 
@@ -176,9 +176,9 @@ JPL::__jump_east(uint32_t node_id,
       uint32_t stop_pos = __builtin_ffs(stop_bits)-1; // returns idx+1
       jumpnode_id += stop_pos; 
       deadend = deadend_bits & (1 << stop_pos);
-      jpruner.jumpdist = jumpnode_id - node_id;
-      if (deadend) jpruner.set_deadend();
-      else jpruner.set_forced();
+      jpruner->jumpdist = jumpnode_id - node_id;
+      if (deadend) jpruner->set_deadend();
+      else jpruner->set_forced();
       break;
     }
 
@@ -187,10 +187,10 @@ JPL::__jump_east(uint32_t node_id,
     // Such a tile, followed by a non-obstacle tile, would yield a forced 
     // neighbour that we don't want to miss.
     jumpnode_id += 31;
-    this->jpruner.scan_cnt++;
+    this->jpruner->scan_cnt++;
 
-    jpruner.jumpdist = (jumpnode_id - node_id);
-    if (gValPruned(jumpnode_id, goal_id, jpruner.jumpdist * warthog::ONE)) {
+    jpruner->jumpdist = (jumpnode_id - node_id);
+    if (gValPruned(jumpnode_id, goal_id, jpruner->jumpdist * warthog::ONE)) {
       break;
     }
   }
@@ -199,8 +199,8 @@ JPL::__jump_east(uint32_t node_id,
   uint32_t goal_dist = goal_id - node_id;
   if(num_steps > goal_dist)
   {
-    jpruner.jumpdist = goal_dist;
-    jpruner.set_reached();
+    jpruner->jumpdist = goal_dist;
+    jpruner->set_reached();
     jumpnode_id = goal_id;
     jumpcost = goal_dist * warthog::ONE;
     return goal_dist;
@@ -212,7 +212,7 @@ JPL::__jump_east(uint32_t node_id,
     // correct here since we just inverted neis[1] and then
     // looked for the first set bit. need -1 to fix it.
     num_steps -= (1 && num_steps);
-    jpruner.jumpdist = num_steps;
+    jpruner->jumpdist = num_steps;
     jumpnode_id = warthog::INF;
   }
   jumpcost = num_steps * warthog::ONE;
@@ -225,7 +225,7 @@ uint32_t
 JPL::jump_west(uint32_t node_id, 
     uint32_t goal_id, uint32_t& jumpnode_id, warthog::cost_t& jumpcost)
 {
-  jpruner.rmapflag = false;
+  jpruner->rmapflag = false;
   return __jump_west(node_id, goal_id, jumpnode_id, jumpcost, map_);
 }
 
@@ -258,18 +258,18 @@ JPL::__jump_west(uint32_t node_id,
       uint32_t stop_pos = __builtin_clz(stop_bits);
       jumpnode_id -= stop_pos;
       deadend = deadend_bits & (0x80000000 >> stop_pos);
-      jpruner.jumpdist = node_id - jumpnode_id;
-      if (deadend) jpruner.set_deadend();
-      else jpruner.set_forced();
+      jpruner->jumpdist = node_id - jumpnode_id;
+      if (deadend) jpruner->set_deadend();
+      else jpruner->set_forced();
       break;
     }
     // jump to the end of cache. jumping +32 involves checking
     // for forced neis between adjacent sets of contiguous tiles
     jumpnode_id -= 31;
-    jpruner.scan_cnt++;
+    jpruner->scan_cnt++;
 
-    jpruner.jumpdist = (node_id - jumpnode_id);
-    if (gValPruned(jumpnode_id, goal_id, jpruner.jumpdist * warthog::ONE)) {
+    jpruner->jumpdist = (node_id - jumpnode_id);
+    if (gValPruned(jumpnode_id, goal_id, jpruner->jumpdist * warthog::ONE)) {
       break;
     }
   }
@@ -278,8 +278,8 @@ JPL::__jump_west(uint32_t node_id,
   uint32_t goal_dist = node_id - goal_id;
   if(num_steps > goal_dist)
   {
-    jpruner.jumpdist = goal_dist;
-    jpruner.set_reached();
+    jpruner->jumpdist = goal_dist;
+    jpruner->set_reached();
     jumpnode_id = goal_id;
     jumpcost = goal_dist * warthog::ONE;
     return goal_dist;
@@ -291,7 +291,7 @@ JPL::__jump_west(uint32_t node_id,
     // correct here since we just inverted neis[1] and then
     // counted leading zeroes. need -1 to fix it.
     num_steps -= (1 && num_steps);
-    jpruner.jumpdist = num_steps;
+    jpruner->jumpdist = num_steps;
     jumpnode_id = warthog::INF;
   }
   jumpcost = num_steps * warthog::ONE;
@@ -325,18 +325,18 @@ JPL::jump_northeast(uint32_t node_id,
     next_id = next_id - mapw + 1;
     rnext_id = rnext_id + rmapw + 1;
 
-    jpruner.scan_cnt++;
-    jpruner.rmapflag = false;
+    jpruner->scan_cnt++;
+    jpruner->rmapflag = false;
     if (gValPruned(next_id, goal_id, num_steps * warthog::ROOT_TWO)) break;
     // recurse straight before stepping again diagonally;
     // (ensures we do not miss any optimal turning points)
     uint32_t jp_id1, jp_id2;
     warthog::cost_t cost1, cost2;
-    jpruner.rmapflag = true;
+    jpruner->rmapflag = true;
     __jump_north(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     if(jp_id1 != warthog::INF) { break; }
 
-    jpruner.rmapflag = false;
+    jpruner->rmapflag = false;
     __jump_east(next_id, goal_id, jp_id2, cost2, map_);
     if(jp_id2 != warthog::INF) { break; }
 
@@ -374,18 +374,18 @@ JPL::jump_northwest(uint32_t node_id,
     next_id = next_id - mapw - 1;
     rnext_id = rnext_id - (rmapw - 1);
 
-    jpruner.scan_cnt++;
-    jpruner.rmapflag = false;
+    jpruner->scan_cnt++;
+    jpruner->rmapflag = false;
     if (gValPruned(next_id, goal_id, num_steps * warthog::ROOT_TWO)) break;
     // recurse straight before stepping again diagonally;
     // (ensures we do not miss any optimal turning points)
     uint32_t jp_id1, jp_id2;
     warthog::cost_t cost1, cost2;
-    jpruner.rmapflag = true;
+    jpruner->rmapflag = true;
     __jump_north(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     if(jp_id1 != warthog::INF) { break; }
 
-    jpruner.rmapflag = false;
+    jpruner->rmapflag = false;
     __jump_west(next_id, goal_id, jp_id2, cost2, map_);
     if(jp_id2 != warthog::INF) { break; }
 
@@ -423,19 +423,19 @@ JPL::jump_southeast(uint32_t node_id,
     next_id = next_id + mapw + 1;
     rnext_id = rnext_id + rmapw - 1;
 
-    jpruner.scan_cnt++;
-    jpruner.rmapflag = false;
+    jpruner->scan_cnt++;
+    jpruner->rmapflag = false;
     if (gValPruned(next_id, goal_id, num_steps * warthog::ROOT_TWO)) break;
 
     // recurse straight before stepping again diagonally;
     // (ensures we do not miss any optimal turning points)
     uint32_t jp_id1, jp_id2;
     warthog::cost_t cost1, cost2;
-    jpruner.rmapflag = true;
+    jpruner->rmapflag = true;
     __jump_south(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     if(jp_id1 != warthog::INF) { break; }
 
-    jpruner.rmapflag = false;
+    jpruner->rmapflag = false;
     __jump_east(next_id, goal_id, jp_id2, cost2, map_);
     if(jp_id2 != warthog::INF) { break; }
 
@@ -472,18 +472,18 @@ JPL::jump_southwest(uint32_t node_id,
     next_id = next_id + mapw - 1;
     rnext_id = rnext_id - (rmapw + 1);
 
-    jpruner.scan_cnt++;
-    jpruner.rmapflag = false;
+    jpruner->scan_cnt++;
+    jpruner->rmapflag = false;
     if (gValPruned(next_id, goal_id, num_steps * warthog::ROOT_TWO)) break;
     // recurse straight before stepping again diagonally;
     // (ensures we do not miss any optimal turning points)
     uint32_t jp_id1, jp_id2;
     warthog::cost_t cost1, cost2;
-    jpruner.rmapflag = true;
+    jpruner->rmapflag = true;
     __jump_south(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     if(jp_id1 != warthog::INF) { break; }
 
-    jpruner.rmapflag = false;
+    jpruner->rmapflag = false;
     __jump_west(next_id, goal_id, jp_id2, cost2, map_);
     if(jp_id2 != warthog::INF) { break; }
 

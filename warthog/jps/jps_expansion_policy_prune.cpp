@@ -5,6 +5,8 @@ warthog::jps_expansion_policy_prune::jps_expansion_policy_prune(warthog::gridmap
 	map_ = map;
 	nodepool_ = new warthog::blocklist(map->height(), map->width());
 	jpl_ = new warthog::online_jump_point_locator_prune(map);
+  jpruner.init(map_->height() * map_->width());
+  jpl_->jpruner = &jpruner;
 	reset();
 }
 
@@ -40,8 +42,8 @@ warthog::jps_expansion_policy_prune::expand(
 		{
 			warthog::cost_t jumpcost;
 			uint32_t succ_id;
-      jpl_->jpruner.cur = current;
-      jpl_->jpruner.rmapflag = false;
+      jpl_->jpruner->cur = current;
+      jpl_->jpruner->rmapflag = false;
 			jpl_->jump(d, current_id, goal_id, succ_id, jumpcost);
 
 			if(succ_id != warthog::INF)

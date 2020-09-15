@@ -22,6 +22,7 @@
 #include "jps.h"
 #include "online_jump_point_locator_prune.h"
 #include "problem_instance.h"
+#include "online_jps_pruner.h"
 #include "search_node.h"
 
 #include "stdint.h"
@@ -34,6 +35,7 @@ class jps_expansion_policy_prune
 	public:
 		jps_expansion_policy_prune(warthog::gridmap* map);
 		~jps_expansion_policy_prune();
+    online_jps_pruner jpruner;
 
 		// create a warthog::search_node object from a state description
 		// (in this case, an id)
