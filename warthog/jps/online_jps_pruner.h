@@ -2,6 +2,7 @@
 
 #include <vector>
 #include "search_node.h"
+#include "constants.h"
 
 namespace warthog {
 
@@ -17,6 +18,7 @@ class online_jps_pruner {
     vector<pic> vis;
 
     uint32_t jumplimit_;
+    uint32_t jlimith, jlimitv;
     uint32_t jumpdist;
     enum EndType {
       forced,     // ended at a forced neighbour
@@ -40,8 +42,7 @@ class online_jps_pruner {
     inline bool is_deadend() { return this->etype == deadend; }
     inline bool is_reached() { return this->etype == reached; }
 
-    inline bool
-    gValPruned(uint32_t jumpnode_id, uint32_t goal_id, warthog::cost_t c) {
+    inline bool gValPruned(uint32_t jumpnode_id, uint32_t goal_id, warthog::cost_t c) {
       if (!gvalue_prune) return false;
 
       if (vis[jumpnode_id].first != goal_id || vis[jumpnode_id].second == 0) {
@@ -58,13 +59,16 @@ class online_jps_pruner {
       }
     }
 
-    inline bool
-    jLmtPruned(uint32_t dist) {
+    inline bool jLmtPruned(uint32_t dist) {
       if (jlimit_prune && dist >= jumplimit_) {
         this->set_pruned();
         return true;
       }
       else return false;
     }
+
+    inline void update_jlimtv() { assert(false); }
+
+    inline void update_jlimth() { assert(false); }
 };
 }

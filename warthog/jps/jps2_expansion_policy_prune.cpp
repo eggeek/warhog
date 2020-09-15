@@ -6,7 +6,9 @@ JPS2::jps2_expansion_policy_prune(warthog::gridmap* map)
 {
 	map_ = map;
 	nodepool_ = new warthog::blocklist(map->height(), map->width());
+  jpruner.init(map_->height() * map_->width());
 	jpl_ = new warthog::online_jump_point_locator2_prune(map);
+  jpl_->pruner = &jpruner;
 	reset();
 
 	neighbours_.reserve(100);
@@ -38,12 +40,18 @@ JPS2::expand(
 	// and forced neighbour
 	uint32_t succ_dirs = warthog::jps::compute_successors(dir_c, c_tiles);
 	uint32_t goal_id = problem->get_goal();
-
+  
+  // init jpruner
+  jpruner.cur = current;
+  jpruner.jumplimit_ = warthog::INF;
+  jpruner.jlimith = jpruner.jlimitv = warthog::INF;
+  // 0~3: cardinal, 4~7: diagonal
 	for(uint32_t i = 0; i < 8; i++)
 	{
 		warthog::jps::direction d = (warthog::jps::direction) (1 << i);
 		if(succ_dirs & d)
 		{
+      jpruner.rmapflag = false;
 			jpl_->jump(d, current_id, goal_id, jp_ids_, costs_);
 		}
 	}

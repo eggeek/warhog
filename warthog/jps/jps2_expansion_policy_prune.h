@@ -15,6 +15,7 @@
 #include "helpers.h"
 #include "jps.h"
 #include "online_jump_point_locator2_prune.h"
+#include "online_jps_pruner.h"
 #include "problem_instance.h"
 #include "search_node.h"
 
@@ -26,6 +27,7 @@ namespace warthog
 class jps2_expansion_policy_prune 
 {
 	public:
+    online_jps_pruner jpruner;
 		jps2_expansion_policy_prune(warthog::gridmap* map);
 		~jps2_expansion_policy_prune();
 
