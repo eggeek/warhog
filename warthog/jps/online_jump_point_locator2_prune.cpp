@@ -112,6 +112,7 @@ JPL2::jump_north(
 	uint32_t jumpnode_id;
 	warthog::cost_t jumpcost;
 
+  pruner->rmapflag = true;
 	__jump_north(rnode_id, rgoal_id, jumpnode_id, jumpcost, rmap_);
 
 	if(jumpnode_id != warthog::INF)
@@ -143,6 +144,7 @@ JPL2::jump_south(
 	uint32_t jumpnode_id;
 	warthog::cost_t jumpcost;
 
+  pruner->rmapflag = true;
 	__jump_south(rnode_id, rgoal_id, jumpnode_id, jumpcost, rmap_);
 
 	if(jumpnode_id != warthog::INF)
@@ -161,6 +163,7 @@ JPL2::__jump_south(uint32_t node_id,
 {
 	// jumping north in the original map is the same as jumping
 	// west when we use a version of the map rotated 90 degrees.
+  pruner->rmapflag = true;
 	__jump_west(node_id, goal_id, jumpnode_id, jumpcost, rmap_);
 }
 
@@ -174,6 +177,7 @@ JPL2::jump_east(
 	uint32_t jumpnode_id;
 	warthog::cost_t jumpcost;
 
+  pruner->rmapflag = false;
 	__jump_east(node_id, goal_id, jumpnode_id, jumpcost, map_);
 
 	if(jumpnode_id != warthog::INF)
@@ -227,7 +231,10 @@ JPL2::__jump_east(uint32_t node_id,
 		// in case the last tile from the row above or below is an obstacle.
 		// Such a tile, followed by a non-obstacle tile, would yield a forced 
 		// neighbour that we don't want to miss.
-		jumpnode_id += 31;
+		jumpnode_id += 1;
+    pruner->scan_cnt++;
+    pruner->jumpdist = jumpnode_id - node_id;
+    if (gValPruned(jumpnode_id, goal_id, pruner->jumpdist)) { break; }
 	}
 
 	uint32_t num_steps = jumpnode_id - node_id;
@@ -305,8 +312,9 @@ JPL2::__jump_west(uint32_t node_id,
 		}
 		// jump to the end of cache. jumping +32 involves checking
 		// for forced neis between adjacent sets of contiguous tiles
-		jumpnode_id -= 31;
-	
+		jumpnode_id -= 1;
+    pruner->jumpdist = node_id - jumpnode_id;
+    if (gValPruned(jumpnode_id, goal_id, pruner->jumpdist)) { break; }
 	}
 
 	uint32_t num_steps = node_id - jumpnode_id;
@@ -403,7 +411,10 @@ JPL2::__jump_northeast(
 
 		// recurse straight before stepping again diagonally;
 		// (ensures we do not miss any optimal turning points)
+    pruner->rmapflag = true;
 		__jump_north(rnode_id, rgoal_id, jp_id1, cost1, rmap_);
+
+    pruner->rmapflag = false;
 		__jump_east(node_id, goal_id, jp_id2, cost2, map_);
 		if((jp_id1 & jp_id2) != warthog::INF) { break; }
 
@@ -494,7 +505,10 @@ JPL2::__jump_northwest(
 
 		// recurse straight before stepping again diagonally;
 		// (ensures we do not miss any optimal turning points)
+    pruner->rmapflag = true;
 		__jump_north(rnode_id, rgoal_id, jp_id1, cost1, rmap_);
+
+    pruner->rmapflag = false;
 		__jump_west(node_id, goal_id, jp_id2, cost2, map_);
 		if((jp_id1 & jp_id2) != warthog::INF) { break; }
 
@@ -584,7 +598,10 @@ JPL2::__jump_southeast(
 
 		// recurse straight before stepping again diagonally;
 		// (ensures we do not miss any optimal turning points)
+    pruner->rmapflag = true;
 		__jump_south(rnode_id, rgoal_id, jp_id1, cost1, rmap_);
+
+    pruner->rmapflag = false;
 		__jump_east(node_id, goal_id, jp_id2, cost2, map_);
 		if((jp_id1 & jp_id2) != warthog::INF) { break; }
 
@@ -671,7 +688,10 @@ JPL2::__jump_southwest(
 
 		// recurse straight before stepping again diagonally;
 		// (ensures we do not miss any optimal turning points)
+    pruner->rmapflag = true;
 		__jump_south(rnode_id, rgoal_id, jp_id1, cost1, rmap_);
+
+    pruner->rmapflag = false;
 		__jump_west(node_id, goal_id, jp_id2, cost2, map_);
 		if((jp_id1 & jp_id2) != warthog::INF) { break; }
 

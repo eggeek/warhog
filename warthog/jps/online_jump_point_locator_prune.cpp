@@ -186,14 +186,11 @@ JPL::__jump_east(uint32_t node_id,
     // in case the last tile from the row above or below is an obstacle.
     // Such a tile, followed by a non-obstacle tile, would yield a forced 
     // neighbour that we don't want to miss.
-    jumpnode_id += 1;
+    jumpnode_id += 31;
     this->jpruner.scan_cnt++;
 
     jpruner.jumpdist = (jumpnode_id - node_id);
     if (gValPruned(jumpnode_id, goal_id, jpruner.jumpdist * warthog::ONE)) {
-      break;
-    }
-    if (jpruner.jLmtPruned(jpruner.jumpdist)) {
       break;
     }
   }
@@ -268,14 +265,11 @@ JPL::__jump_west(uint32_t node_id,
     }
     // jump to the end of cache. jumping +32 involves checking
     // for forced neis between adjacent sets of contiguous tiles
-    jumpnode_id -= 1;
+    jumpnode_id -= 31;
     jpruner.scan_cnt++;
 
     jpruner.jumpdist = (node_id - jumpnode_id);
     if (gValPruned(jumpnode_id, goal_id, jpruner.jumpdist * warthog::ONE)) {
-      break;
-    }
-    if (jpruner.jLmtPruned(jpruner.jumpdist)) {
       break;
     }
   }
@@ -325,7 +319,6 @@ JPL::jump_northeast(uint32_t node_id,
   uint32_t rnext_id = map_id_to_rmap_id(next_id);
   uint32_t rgoal_id = map_id_to_rmap_id(goal_id);
   uint32_t rmapw = rmap_->width();
-  uint32_t jlimith = warthog::INF, jlimitv = warthog::INF;
   while(true)
   {
     num_steps++;
@@ -340,18 +333,12 @@ JPL::jump_northeast(uint32_t node_id,
     uint32_t jp_id1, jp_id2;
     warthog::cost_t cost1, cost2;
     jpruner.rmapflag = true;
-    jpruner.jumplimit_ = jlimitv;
     __jump_north(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     if(jp_id1 != warthog::INF) { break; }
-    if (jpruner.is_deadend()) jlimitv = warthog::INF;
-    else jlimitv = jpruner.jumpdist - 1;
 
-    jpruner.jumplimit_ = jlimith;
     jpruner.rmapflag = false;
     __jump_east(next_id, goal_id, jp_id2, cost2, map_);
     if(jp_id2 != warthog::INF) { break; }
-    if (jpruner.is_deadend()) jlimith = warthog::INF;
-    else jlimith = jpruner.jumpdist - 1;
 
     // couldn't move in either straight dir; node_id is an obstacle
     if(!(cost1 && cost2)) { next_id = warthog::INF; break; }
@@ -381,7 +368,6 @@ JPL::jump_northwest(uint32_t node_id,
   uint32_t rnext_id = map_id_to_rmap_id(next_id);
   uint32_t rgoal_id = map_id_to_rmap_id(goal_id);
   uint32_t rmapw = rmap_->width();
-  uint32_t jlimith = warthog::INF, jlimitv = warthog::INF;
   while(true)
   {
     num_steps++;
@@ -396,18 +382,12 @@ JPL::jump_northwest(uint32_t node_id,
     uint32_t jp_id1, jp_id2;
     warthog::cost_t cost1, cost2;
     jpruner.rmapflag = true;
-    jpruner.jumplimit_ = jlimitv;
     __jump_north(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     if(jp_id1 != warthog::INF) { break; }
-    if (jpruner.is_deadend()) jlimitv = warthog::INF;
-    else jlimitv = jpruner.jumpdist - 1;
 
-    jpruner.jumplimit_ = jlimith;
     jpruner.rmapflag = false;
     __jump_west(next_id, goal_id, jp_id2, cost2, map_);
     if(jp_id2 != warthog::INF) { break; }
-    if (jpruner.is_deadend()) jlimith = warthog::INF;
-    else jlimith = jpruner.jumpdist - 1;
 
     // couldn't move in either straight dir; node_id is an obstacle
     if(!(cost1 && cost2)) { next_id = warthog::INF; break; }
@@ -437,7 +417,6 @@ JPL::jump_southeast(uint32_t node_id,
   uint32_t rnext_id = map_id_to_rmap_id(next_id);
   uint32_t rgoal_id = map_id_to_rmap_id(goal_id);
   uint32_t rmapw = rmap_->width();
-  uint32_t jlimith = warthog::INF, jlimitv = warthog::INF;
   while(true)
   {
     num_steps++;
@@ -453,18 +432,12 @@ JPL::jump_southeast(uint32_t node_id,
     uint32_t jp_id1, jp_id2;
     warthog::cost_t cost1, cost2;
     jpruner.rmapflag = true;
-    jpruner.jumplimit_ = jlimitv;
     __jump_south(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     if(jp_id1 != warthog::INF) { break; }
-    if (jpruner.is_deadend()) jlimitv = warthog::INF;
-    else jlimitv = jpruner.jumpdist - 1;
 
-    jpruner.jumplimit_ = jlimith;
     jpruner.rmapflag = false;
     __jump_east(next_id, goal_id, jp_id2, cost2, map_);
     if(jp_id2 != warthog::INF) { break; }
-    if (jpruner.is_deadend()) jlimith = warthog::INF;
-    else jlimith = jpruner.jumpdist - 1;
 
     // couldn't move in either straight dir; node_id is an obstacle
     if(!(cost1 && cost2)) { next_id = warthog::INF; break; }
@@ -493,7 +466,6 @@ JPL::jump_southwest(uint32_t node_id,
   uint32_t rnext_id = map_id_to_rmap_id(next_id);
   uint32_t rgoal_id = map_id_to_rmap_id(goal_id);
   uint32_t rmapw = rmap_->width();
-  uint32_t jlimith = warthog::INF, jlimitv = warthog::INF;
   while(true)
   {
     num_steps++;
@@ -508,18 +480,12 @@ JPL::jump_southwest(uint32_t node_id,
     uint32_t jp_id1, jp_id2;
     warthog::cost_t cost1, cost2;
     jpruner.rmapflag = true;
-    jpruner.jumplimit_ = jlimitv;
     __jump_south(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     if(jp_id1 != warthog::INF) { break; }
-    if (jpruner.is_deadend()) jlimitv = warthog::INF;
-    else jlimitv = jpruner.jumpdist - 1;
 
-    jpruner.jumplimit_ = jlimith;
     jpruner.rmapflag = false;
     __jump_west(next_id, goal_id, jp_id2, cost2, map_);
     if(jp_id2 != warthog::INF) { break; }
-    if (jpruner.is_deadend()) jlimith = warthog::INF;
-    else jlimith = jpruner.jumpdist - 1;
 
     // couldn't move in either straight dir; node_id is an obstacle
     if(!(cost1 && cost2)) { next_id = warthog::INF; break; }

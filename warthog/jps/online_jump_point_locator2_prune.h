@@ -16,6 +16,7 @@
 #include "jps.h"
 #include "gridmap.h"
 #include "online_jps_pruner.h"
+#include <bits/stdint-uintn.h>
 
 //class warthog::gridmap;
 namespace warthog
@@ -27,6 +28,8 @@ class online_jump_point_locator2_prune
 		online_jump_point_locator2_prune(warthog::gridmap* map);
 		~online_jump_point_locator2_prune();
     online_jps_pruner* pruner;
+    bool gprune = false;
+    bool jlimit = false;
 
 		void
 		jump(warthog::jps::direction d, uint32_t node_id, uint32_t goalid, 
@@ -164,6 +167,20 @@ class online_jump_point_locator2_prune
 		uint32_t current_rgoal_id_;
 		uint32_t current_node_id_;
 		uint32_t current_rnode_id_;
+
+    inline bool
+    gValPruned(uint32_t jumpnode_id, const uint32_t& goal_id, warthog::cost_t cost) {
+      if (!gprune) return false;
+      if (pruner->rmapflag) jumpnode_id = rmap_id_to_map_id(jumpnode_id);
+      return pruner->gValPruned(jumpnode_id, goal_id, cost);
+    }
+
+    inline uint32_t
+    gVal(uint32_t jumpnode_id, const uint32_t& goal_id) {
+      if (pruner->rmapflag) jumpnode_id = rmap_id_to_map_id(jumpnode_id);
+      return pruner->gVal(jumpnode_id, goal_id);
+    }
 };
+
 
 }

@@ -11,8 +11,6 @@ class online_jps_pruner {
   public:
     typedef pair<uint32_t, warthog::cost_t> pic; // Pair of <Id, Cost>
     bool rmapflag;
-    bool gvalue_prune;
-    bool jlimit_prune;
     uint32_t scan_cnt;
     search_node* cur;
     vector<pic> vis;
@@ -42,8 +40,7 @@ class online_jps_pruner {
     inline bool is_deadend() { return this->etype == deadend; }
     inline bool is_reached() { return this->etype == reached; }
 
-    inline bool gValPruned(uint32_t jumpnode_id, uint32_t goal_id, warthog::cost_t c) {
-      if (!gvalue_prune) return false;
+    inline bool gValPruned(const uint32_t& jumpnode_id, const uint32_t& goal_id,const warthog::cost_t& c) {
 
       if (vis[jumpnode_id].first != goal_id || vis[jumpnode_id].second == 0) {
         vis[jumpnode_id] = {goal_id, c + cur->get_g()};
@@ -59,12 +56,9 @@ class online_jps_pruner {
       }
     }
 
-    inline bool jLmtPruned(uint32_t dist) {
-      if (jlimit_prune && dist >= jumplimit_) {
-        this->set_pruned();
-        return true;
-      }
-      else return false;
+    inline uint32_t gVal(const uint32_t& jumpnode_id, const uint32_t& goal_id) {
+      if (vis[jumpnode_id].first != goal_id) return warthog::INF;
+      else return vis[jumpnode_id].second;
     }
 
     inline void update_jlimtv() { assert(false); }
