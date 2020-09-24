@@ -1,4 +1,6 @@
 #include "jps_expansion_policy_prune.h"
+#include "constants.h"
+#include <cassert>
 
 warthog::jps_expansion_policy_prune::jps_expansion_policy_prune(warthog::gridmap* map)
 {
@@ -35,6 +37,8 @@ warthog::jps_expansion_policy_prune::expand(
 	// and forced neighbour
 	uint32_t succ_dirs = warthog::jps::compute_successors(dir_c, c_tiles);
 	uint32_t goal_id = problem->get_goal();
+
+  jpruner.startExpand();
 	for(uint32_t i = 0; i < 8; i++)
 	{
 		warthog::jps::direction d = (warthog::jps::direction) (1 << i);
@@ -42,11 +46,20 @@ warthog::jps_expansion_policy_prune::expand(
 		{
 			warthog::cost_t jumpcost;
 			uint32_t succ_id;
-      jpl_->jpruner->cur = current;
-      jpl_->jpruner->rmapflag = false;
+      jpruner.startJump(current);
 			jpl_->jump(d, current_id, goal_id, succ_id, jumpcost);
 
-			if(succ_id != warthog::INF)
+      assert(&jpruner == jpl_->jpruner);
+      assert(jpruner.is_forced() || jpruner.is_pruned() || jpruner.is_deadend());
+      if (jpruner.is_deadend()) assert(succ_id == warthog::INF);
+      if (succ_id != warthog::INF) {
+        assert(jpruner.is_forced() || jpruner.is_pruned());
+      }
+      if (succ_id != warthog::INF && jpruner.is_pruned()) {
+        assert(i <= 3);
+      }
+
+			if(succ_id != warthog::INF && jpruner.is_forced())
 			{
 				neighbours_[num_neighbours_] = nodepool_->generate(succ_id);
 				costs_[num_neighbours_] = jumpcost;
