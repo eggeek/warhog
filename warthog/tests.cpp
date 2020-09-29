@@ -1,3 +1,4 @@
+#define CATCH_CONFIG_RUNNER
 #include "blockmap.h"
 #include "cuckoo_table.h"
 #include "cpool.h"
@@ -12,11 +13,17 @@
 #include "scenario_manager.h"
 
 #include "getopt.h"
+#include "catch.hpp"
+#include "test-jlimit.hpp"
 
 #include <iomanip>
 #include <sstream>
 #include <tr1/unordered_map>
 #include <memory>
+#include <cstdio>
+
+using namespace std;
+string testfile;
 
 void blockmap_access_test();
 void gridmap_access_test();
@@ -28,12 +35,6 @@ void gridmap_expansion_policy_test();
 void flexible_astar_test();
 void test_alloc();
 void online_jps_test();
-
-int main(int argc, char** argv)
-{
-	//flexible_astar_test();
-	online_jps_test();
-}
 
 void test_alloc()
 {
@@ -377,4 +378,18 @@ void gridmap_access_test()
 		//std::cout << i << "\r" << std::flush;
 	}
 	std::cout << "gridmap_access_test..."<<std::endl;
+}
+
+
+int main(int argv, char* args[]) {
+  using namespace Catch::clara;
+  Catch::Session session;
+  auto cli = session.cli() | Opt(testfile, "testfile")["--input"]("");
+  session.cli(cli);
+  int resCode = session.applyCommandLine(argv, args);
+  if (resCode != 0)
+    return resCode;
+
+	cout << "Running test cases..." << endl;
+	return session.run(argv, args);
 }
