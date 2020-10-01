@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <climits>
+#include <ostream>
 
 using JPL=warthog::online_jump_point_locator_prune;
 
@@ -181,18 +182,30 @@ JPL::__jump_east(uint32_t node_id,
       deadend = deadend_bits & (1 << stop_pos);
       jpruner->jumpdist = jumpnode_id - node_id;
       if (deadend) break;
-      if (gValPruned(jumpnode_id, goal_id)) break;
+      if (gValPruned(jumpnode_id)) break;
       jpruner->set_forced();
+      if (jprune) updategVal(jumpnode_id, jpruner->jumpdist * warthog::ONE + jpruner->curg);
       break;
     }
 
     jpruner->jumpdist = (jumpnode_id - node_id);
-    if (gValPruned(jumpnode_id, goal_id)) {
+    if (gValPruned(jumpnode_id)) {
       break;
     }
 
-    if (jLimitPruned(jpruner->jlimith)) { 
-      jpruner->set_pruned();
+    if (jLimitPruned()) { 
+      #ifndef NDEBUG
+      if (verbose) {
+        uint32_t cid = jumpnode_id, x, y, limit;
+        limit = jpruner->rmapflag? jpruner->jlimitv: jpruner->jlimith;
+        if (jpruner->rmapflag) cid = rmap_id_to_map_id(cid);
+        y = cid / map_->width();
+        x = cid % map_->width();
+        std::cerr << "Jlimit Prune: (" << x << ", " << y << ")" << "\t";
+        std::cerr << "jumpdist: " << jpruner->jumpdist 
+                  << ", limit: " << limit << std::endl;
+      }
+      #endif
       break;
     }
     // jump to the last position in the cache. we do not jump past the end
@@ -212,6 +225,7 @@ JPL::__jump_east(uint32_t node_id,
     jpruner->set_forced();
     jumpnode_id = goal_id;
     jumpcost = goal_dist * warthog::ONE;
+    if (jprune) updategVal(jumpnode_id, jumpcost + jpruner->curg);
     return goal_dist;
   }
 
@@ -272,17 +286,29 @@ JPL::__jump_west(uint32_t node_id,
       deadend = deadend_bits & (0x80000000 >> stop_pos);
       jpruner->jumpdist = node_id - jumpnode_id;
       if (deadend) break;
-      if (gValPruned(jumpnode_id, goal_id)) break;
+      if (gValPruned(jumpnode_id)) break;
       jpruner->set_forced();
+      if (jprune) updategVal(jumpnode_id, jpruner->jumpdist * warthog::ONE + jpruner->curg);
       break;
     }
 
     jpruner->jumpdist = (node_id - jumpnode_id);
-    if (gValPruned(jumpnode_id, goal_id)) {
+    if (gValPruned(jumpnode_id)) {
       break;
     }
-    if (jLimitPruned(jpruner->jlimith)) { 
-      jpruner->set_pruned();
+    if (jLimitPruned()) { 
+      #ifndef NDEBUG
+      if (verbose) {
+        uint32_t cid = jumpnode_id, x, y, limit;
+        limit = jpruner->rmapflag? jpruner->jlimitv: jpruner->jlimith;
+        if (jpruner->rmapflag) cid = rmap_id_to_map_id(cid);
+        y = cid / map_->width();
+        x = cid % map_->width();
+        std::cerr << "Jlimit Prune: (" << x << ", " << y << ")" << "\t";
+        std::cerr << "jumpdist: " << jpruner->jumpdist 
+                  << ", limit: " << limit << std::endl;
+      }
+      #endif
       break;
     }
 
@@ -301,6 +327,7 @@ JPL::__jump_west(uint32_t node_id,
     jpruner->set_forced();
     jumpnode_id = goal_id;
     jumpcost = goal_dist * warthog::ONE;
+    if (jprune) updategVal(jumpnode_id, jumpcost + jpruner->curg);
     return goal_dist;
   }
 
@@ -349,9 +376,8 @@ JPL::jump_northeast(uint32_t node_id,
     next_id = next_id - mapw + 1;
     rnext_id = rnext_id + rmapw + 1;
 
-    jpruner->scan_cnt++;
     jpruner->rmapflag = false;
-    if (gValPruned(next_id, goal_id)) break;
+    if (gValPruned(next_id)) break;
     // recurse straight before stepping again diagonally;
     // (ensures we do not miss any optimal turning points)
     uint32_t jp_id1, jp_id2;
@@ -404,9 +430,8 @@ JPL::jump_northwest(uint32_t node_id,
     next_id = next_id - mapw - 1;
     rnext_id = rnext_id - (rmapw - 1);
 
-    jpruner->scan_cnt++;
     jpruner->rmapflag = false;
-    if (gValPruned(next_id, goal_id)) break;
+    if (gValPruned(next_id)) break;
     // recurse straight before stepping again diagonally;
     // (ensures we do not miss any optimal turning points)
     uint32_t jp_id1, jp_id2;
@@ -460,9 +485,8 @@ JPL::jump_southeast(uint32_t node_id,
     next_id = next_id + mapw + 1;
     rnext_id = rnext_id + rmapw - 1;
 
-    jpruner->scan_cnt++;
     jpruner->rmapflag = false;
-    if (gValPruned(next_id, goal_id)) break;
+    if (gValPruned(next_id)) break;
 
     // recurse straight before stepping again diagonally;
     // (ensures we do not miss any optimal turning points)
@@ -516,9 +540,8 @@ JPL::jump_southwest(uint32_t node_id,
     next_id = next_id + mapw - 1;
     rnext_id = rnext_id - (rmapw + 1);
 
-    jpruner->scan_cnt++;
     jpruner->rmapflag = false;
-    if (gValPruned(next_id, goal_id)) break;
+    if (gValPruned(next_id)) break;
     // recurse straight before stepping again diagonally;
     // (ensures we do not miss any optimal turning points)
     uint32_t jp_id1, jp_id2;

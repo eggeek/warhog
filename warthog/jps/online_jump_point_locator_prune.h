@@ -30,6 +30,7 @@ class online_jump_point_locator_prune
     ~online_jump_point_locator_prune();
     bool gprune = false;
     bool jprune = false;
+    bool verbose = false;
 
     void
     jump(warthog::jps::direction d, uint32_t node_id, uint32_t goalid, 
@@ -41,6 +42,10 @@ class online_jump_point_locator_prune
       return sizeof(this) + rmap_->mem();
     }
 
+    inline void set_verbose(bool verbose) {
+      this->verbose = verbose;
+      jpruner->verbose = verbose;
+    }
   private:
     void
     jump_northwest(uint32_t node_id, uint32_t goal_id, 
@@ -120,29 +125,39 @@ class online_jump_point_locator_prune
     warthog::gridmap* rmap_;
 
     inline bool
-    jLimitPruned(const uint32_t& limit) {
+    jLimitPruned() {
       if (!jprune) return false;
-      if (jpruner->jumpdist >= limit) return true;
+      uint32_t limit = jpruner->rmapflag? jpruner->jlimitv: jpruner->jlimith;
+      if (jpruner->jumpdist >= limit) {
+        jpruner->set_pruned();
+        return true;
+      }
       else return false;
     }
 
     inline bool
-    gValPruned(uint32_t jumpnode_id, uint32_t goal_id) {
+    gValPruned(uint32_t jumpnode_id) {
       if (!gprune) return false;
       if (jpruner->rmapflag) {
         jumpnode_id = rmap_id_to_map_id(jumpnode_id);
-        goal_id = rmap_id_to_map_id(goal_id);
       }
-      return jpruner->gValPruned(jumpnode_id, goal_id, jpruner->jumpdist * warthog::ONE + jpruner->curg);
+      return jpruner->gValPruned(jumpnode_id, jpruner->jumpdist * warthog::ONE + jpruner->curg);
+    }
+
+    inline void
+    updategVal(uint32_t jumpnode_id, warthog::cost_t c) {
+      if (jpruner->rmapflag) {
+        jumpnode_id = rmap_id_to_map_id(jumpnode_id);
+      }
+      jpruner->update_gval(jumpnode_id, c);
     }
 
     inline uint32_t
-    gVal(uint32_t jumpnode_id, uint32_t goal_id) {
+    gVal(uint32_t jumpnode_id) {
       if (jpruner->rmapflag) {
         jumpnode_id = rmap_id_to_map_id(jumpnode_id);
-        goal_id = rmap_id_to_map_id(goal_id);
       }
-      return jpruner->gVal(jumpnode_id, goal_id);
+      return jpruner->gVal(jumpnode_id);
     }
 };
 
