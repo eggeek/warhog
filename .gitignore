@@ -7,3 +7,5 @@ src/lib/
 */lib/
 */.clangd
 */compile_commands.json
+.*
+!.gitignore
