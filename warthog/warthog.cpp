@@ -300,8 +300,8 @@ run_jps_prune(warthog::scenario_manager& scenmgr)
 
     tot += expander.get_locator()->jpruner->scan_cnt;
 		check_optimality(len, exp);
-    break;
 	}
+  std::cerr << "done. total memory: "<< astar.mem() + scenmgr.mem() << ", tot scan: " << tot << "\n";
 }
 
 void
