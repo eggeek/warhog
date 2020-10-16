@@ -74,6 +74,12 @@ TEST_CASE("jlimit-exp") {
         {{756, 460}, {746, 235}, 231.627, false, true},
         {{610, 163}, {375, 187}, 450.973, false, true},
       }
+    },
+    {
+      "./testcases/maps/starcraft/GhostTown.map",
+      {
+        {{336, 186}, {1, 478}, 481.139, false, true}
+      }
     }
   };
 
