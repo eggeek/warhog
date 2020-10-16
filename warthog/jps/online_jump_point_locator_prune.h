@@ -125,17 +125,6 @@ class online_jump_point_locator_prune
     warthog::gridmap* rmap_;
 
     inline bool
-    jLimitPruned() {
-      if (!jprune) return false;
-      uint32_t limit = jpruner->rmapflag? jpruner->jlimitv: jpruner->jlimith;
-      if (jpruner->jumpdist >= limit) {
-        jpruner->set_pruned();
-        return true;
-      }
-      else return false;
-    }
-
-    inline bool
     gValPruned(uint32_t jumpnode_id) {
       if (!gprune) return false;
       if (jpruner->rmapflag) {
@@ -145,11 +134,11 @@ class online_jump_point_locator_prune
     }
 
     inline void
-    updategVal(uint32_t jumpnode_id, warthog::cost_t c) {
+    createConstraint(uint32_t jumpnode_id, warthog::cost_t c) {
       if (jpruner->rmapflag) {
         jumpnode_id = rmap_id_to_map_id(jumpnode_id);
       }
-      jpruner->update_gval(jumpnode_id, c);
+      jpruner->createConstraint(jumpnode_id, c);
     }
 
     inline uint32_t

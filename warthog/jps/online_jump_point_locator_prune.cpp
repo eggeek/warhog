@@ -94,9 +94,10 @@ JPL::jump_north(uint32_t node_id,
   node_id = this->map_id_to_rmap_id(node_id);
   goal_id = this->map_id_to_rmap_id(goal_id);
   this->jpruner->rmapflag = true;
+  jpruner->set_north_constraint();
   uint32_t res = __jump_north(node_id, goal_id, jumpnode_id, jumpcost, rmap_);
   jumpnode_id = this->rmap_id_to_map_id(jumpnode_id);
-  if (jprune) jpruner->update_jlimtv(jumpnode_id);
+  jpruner->updateConstraint();
   return res;
 }
 
@@ -118,9 +119,10 @@ JPL::jump_south(uint32_t node_id,
   node_id = this->map_id_to_rmap_id(node_id);
   goal_id = this->map_id_to_rmap_id(goal_id);
   this->jpruner->rmapflag = true;
+  jpruner->set_south_constraint();
   uint32_t res = __jump_south(node_id, goal_id, jumpnode_id, jumpcost, rmap_);
   jumpnode_id = this->rmap_id_to_map_id(jumpnode_id);
-  if (jprune) jpruner->update_jlimtv(jumpnode_id);
+  jpruner->updateConstraint();
   return res;
 }
 
@@ -138,9 +140,10 @@ uint32_t
 JPL::jump_east(uint32_t node_id, 
     uint32_t goal_id, uint32_t& jumpnode_id, warthog::cost_t& jumpcost)
 {
-  this->jpruner->rmapflag = false;
+  jpruner->rmapflag = false;
+  jpruner->set_east_constraint();
   uint32_t res = __jump_east(node_id, goal_id, jumpnode_id, jumpcost, map_);
-  if (jprune) jpruner->update_jlimth(jumpnode_id);
+  jpruner->updateConstraint();
   return res;
 }
 
@@ -183,8 +186,7 @@ JPL::__jump_east(uint32_t node_id,
       jpruner->jumpdist = jumpnode_id - node_id;
       if (deadend) break;
       if (gValPruned(jumpnode_id)) break;
-      jpruner->set_forced();
-      if (jprune) updategVal(jumpnode_id, jpruner->jumpdist * warthog::ONE + jpruner->curg);
+      createConstraint(jumpnode_id, jpruner->jumpdist * warthog::ONE + jpruner->curg);
       break;
     }
 
@@ -193,17 +195,15 @@ JPL::__jump_east(uint32_t node_id,
       break;
     }
 
-    if (jLimitPruned()) { 
+    if (jprune && jpruner->constraintPruned()) { 
       #ifndef NDEBUG
       if (verbose) {
-        uint32_t cid = jumpnode_id, x, y, limit;
-        limit = jpruner->rmapflag? jpruner->jlimitv: jpruner->jlimith;
+        uint32_t cid = jumpnode_id, x, y;
         if (jpruner->rmapflag) cid = rmap_id_to_map_id(cid);
         y = cid / map_->width();
         x = cid % map_->width();
         std::cerr << "Jlimit Prune: (" << x << ", " << y << ")" << "\t";
-        std::cerr << "jumpdist: " << jpruner->jumpdist 
-                  << ", limit: " << limit << std::endl;
+        std::cerr << "jumpdist: " << jpruner->jumpdist << std::endl;
       }
       #endif
       break;
@@ -221,11 +221,10 @@ JPL::__jump_east(uint32_t node_id,
   if(num_steps > goal_dist)
   {
     jpruner->jumpdist = goal_dist;
-    // jpruner->set_reached();
-    jpruner->set_forced();
+    jpruner->set_reached();
     jumpnode_id = goal_id;
     jumpcost = goal_dist * warthog::ONE;
-    if (jprune) updategVal(jumpnode_id, jumpcost + jpruner->curg);
+    createConstraint(jumpnode_id, jumpcost + jpruner->curg);
     return goal_dist;
   }
 
@@ -238,6 +237,8 @@ JPL::__jump_east(uint32_t node_id,
     jpruner->jumpdist = num_steps;
     jpruner->set_deadend();
     jumpnode_id = warthog::INF;
+    jumpcost = num_steps * warthog::ONE;
+    return num_steps;
   }
   jumpcost = num_steps * warthog::ONE;
   return num_steps;
@@ -250,8 +251,9 @@ JPL::jump_west(uint32_t node_id,
     uint32_t goal_id, uint32_t& jumpnode_id, warthog::cost_t& jumpcost)
 {
   jpruner->rmapflag = false;
+  jpruner->set_west_constraint();
   uint32_t res = __jump_west(node_id, goal_id, jumpnode_id, jumpcost, map_);
-  if (jprune) jpruner->update_jlimth(jumpnode_id);
+  jpruner->updateConstraint();
   return res;
 }
 
@@ -287,8 +289,7 @@ JPL::__jump_west(uint32_t node_id,
       jpruner->jumpdist = node_id - jumpnode_id;
       if (deadend) break;
       if (gValPruned(jumpnode_id)) break;
-      jpruner->set_forced();
-      if (jprune) updategVal(jumpnode_id, jpruner->jumpdist * warthog::ONE + jpruner->curg);
+      createConstraint(jumpnode_id, jpruner->jumpdist * warthog::ONE + jpruner->curg);
       break;
     }
 
@@ -296,17 +297,15 @@ JPL::__jump_west(uint32_t node_id,
     if (gValPruned(jumpnode_id)) {
       break;
     }
-    if (jLimitPruned()) { 
+    if (jprune && jpruner->constraintPruned()) { 
       #ifndef NDEBUG
       if (verbose) {
-        uint32_t cid = jumpnode_id, x, y, limit;
-        limit = jpruner->rmapflag? jpruner->jlimitv: jpruner->jlimith;
+        uint32_t cid = jumpnode_id, x, y;
         if (jpruner->rmapflag) cid = rmap_id_to_map_id(cid);
         y = cid / map_->width();
         x = cid % map_->width();
         std::cerr << "Jlimit Prune: (" << x << ", " << y << ")" << "\t";
-        std::cerr << "jumpdist: " << jpruner->jumpdist 
-                  << ", limit: " << limit << std::endl;
+        std::cerr << "jumpdist: " << jpruner->jumpdist << std::endl;
       }
       #endif
       break;
@@ -323,11 +322,10 @@ JPL::__jump_west(uint32_t node_id,
   if(num_steps > goal_dist)
   {
     jpruner->jumpdist = goal_dist;
-    // jpruner->set_reached();
-    jpruner->set_forced();
+    jpruner->set_reached();
     jumpnode_id = goal_id;
     jumpcost = goal_dist * warthog::ONE;
-    if (jprune) updategVal(jumpnode_id, jumpcost + jpruner->curg);
+    createConstraint(jumpnode_id, jumpcost + jpruner->curg);
     return goal_dist;
   }
 
@@ -340,6 +338,8 @@ JPL::__jump_west(uint32_t node_id,
     jpruner->jumpdist = num_steps;
     jpruner->set_deadend();
     jumpnode_id = warthog::INF;
+    jumpcost = num_steps * warthog::ONE;
+    return num_steps;
   }
   jumpcost = num_steps * warthog::ONE;
   return num_steps;
@@ -367,6 +367,8 @@ JPL::jump_northeast(uint32_t node_id,
   uint32_t rgoal_id = map_id_to_rmap_id(goal_id);
   uint32_t rmapw = rmap_->width();
   assert(jpruner->curg == jpruner->cur->get_g());
+  jpruner->set_north_constraint();
+  jpruner->set_east_constraint();
   while(true)
   {
     num_steps++;
@@ -385,17 +387,16 @@ JPL::jump_northeast(uint32_t node_id,
     jpruner->rmapflag = true;
     __jump_north(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     if(jp_id1 != warthog::INF && jpruner->is_forced()) { break; }
-    if (jprune) jpruner->update_jlimtv(rmap_id_to_map_id(jp_id1));
+    jpruner->updateConstraint();
 
     jpruner->rmapflag = false;
     __jump_east(next_id, goal_id, jp_id2, cost2, map_);
     if(jp_id2 != warthog::INF && jpruner->is_forced()) { break; }
-    if (jprune) jpruner->update_jlimth(jp_id2);
+    jpruner->updateConstraint();
 
     // couldn't move in either straight dir; node_id is an obstacle
     if(!(cost1 && cost2)) { next_id = warthog::INF; break; }
   }
-  jpruner->set_forced();
   jumpnode_id = next_id;
   jumpcost = num_steps*warthog::ROOT_TWO;
 }
@@ -421,6 +422,8 @@ JPL::jump_northwest(uint32_t node_id,
   uint32_t rgoal_id = map_id_to_rmap_id(goal_id);
   uint32_t rmapw = rmap_->width();
   assert(jpruner->curg == jpruner->cur->get_g());
+  jpruner->set_north_constraint();
+  jpruner->set_west_constraint();
   while(true)
   {
     num_steps++;
@@ -439,17 +442,16 @@ JPL::jump_northwest(uint32_t node_id,
     jpruner->rmapflag = true;
     __jump_north(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     if(jp_id1 != warthog::INF && jpruner->is_forced()) { break; }
-    if (jprune) jpruner->update_jlimtv(rmap_id_to_map_id(jp_id1));
+    jpruner->updateConstraint();
 
     jpruner->rmapflag = false;
     __jump_west(next_id, goal_id, jp_id2, cost2, map_);
     if(jp_id2 != warthog::INF && jpruner->is_forced()) { break; }
-    if (jprune) jpruner->update_jlimth(jp_id2);
+    jpruner->updateConstraint();
 
     // couldn't move in either straight dir; node_id is an obstacle
     if(!(cost1 && cost2)) { next_id = warthog::INF; break; }
   }
-  jpruner->set_forced();
   jumpnode_id = next_id;
   jumpcost = num_steps*warthog::ROOT_TWO;
 }
@@ -476,6 +478,8 @@ JPL::jump_southeast(uint32_t node_id,
   uint32_t rgoal_id = map_id_to_rmap_id(goal_id);
   uint32_t rmapw = rmap_->width();
   assert(jpruner->curg == jpruner->cur->get_g());
+  jpruner->set_south_constraint();
+  jpruner->set_east_constraint();
   while(true)
   {
     num_steps++;
@@ -495,17 +499,16 @@ JPL::jump_southeast(uint32_t node_id,
     jpruner->rmapflag = true;
     __jump_south(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     if(jp_id1 != warthog::INF && jpruner->is_forced()) { break; }
-    if (jprune) jpruner->update_jlimtv(rmap_id_to_map_id(jp_id1));
+    jpruner->updateConstraint();
 
     jpruner->rmapflag = false;
     __jump_east(next_id, goal_id, jp_id2, cost2, map_);
     if(jp_id2 != warthog::INF && jpruner->is_forced()) { break; }
-    if (jprune) jpruner->update_jlimth(jp_id2);
+    jpruner->updateConstraint();
 
     // couldn't move in either straight dir; node_id is an obstacle
     if(!(cost1 && cost2)) { next_id = warthog::INF; break; }
   }
-  jpruner->set_forced();
   jumpnode_id = next_id;
   jumpcost = num_steps*warthog::ROOT_TWO;
 }
@@ -531,6 +534,8 @@ JPL::jump_southwest(uint32_t node_id,
   uint32_t rgoal_id = map_id_to_rmap_id(goal_id);
   uint32_t rmapw = rmap_->width();
   assert(jpruner->curg == jpruner->cur->get_g());
+  jpruner->set_south_constraint();
+  jpruner->set_west_constraint();
   while(true)
   {
     num_steps++;
@@ -549,17 +554,16 @@ JPL::jump_southwest(uint32_t node_id,
     jpruner->rmapflag = true;
     __jump_south(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     if(jp_id1 != warthog::INF && jpruner->is_forced()) { break; }
-    if (jprune) jpruner->update_jlimtv(rmap_id_to_map_id(jp_id1));
+    jpruner->updateConstraint();
 
     jpruner->rmapflag = false;
     __jump_west(next_id, goal_id, jp_id2, cost2, map_);
     if(jp_id2 != warthog::INF && jpruner->is_forced()) { break; }
-    if (jprune) jpruner->update_jlimth(jp_id2);
+    jpruner->updateConstraint();
 
     // couldn't move in either straight dir; node_id is an obstacle
     if(!(cost1 && cost2)) { next_id = warthog::INF; break; }
   }
-  jpruner->set_forced();
   jumpnode_id = next_id;
   jumpcost = num_steps*warthog::ROOT_TWO;
 }

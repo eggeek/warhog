@@ -50,13 +50,20 @@ warthog::jps_expansion_policy_prune::expand(
       jpruner.startJump();
 			jpl_->jump(d, current_id, goal_id, succ_id, jumpcost);
 
-			if(succ_id != warthog::INF && jpruner.is_forced())
+			if(succ_id != warthog::INF && (jpruner.is_forced() || jpruner.is_reached()))
 			{
 				neighbours_[num_neighbours_] = nodepool_->generate(succ_id);
 				costs_[num_neighbours_] = jumpcost;
 				// move terminator character as we go
 				neighbours_[++num_neighbours_] = 0;
 			}
+
+      // straight-scanning may create constraints for diag-scanning
+      if (i < 4 && succ_id != warthog::INF) {
+        if (current->get_g() + jumpcost > jpruner.gVal(succ_id)) {
+          jpruner.constraints[i] = {succ_id, jpruner.jumpdist, 0};
+        }
+      }
 		}
 	}
 }
