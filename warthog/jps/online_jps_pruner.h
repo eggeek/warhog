@@ -74,12 +74,22 @@ class online_jps_pruner {
         c.node_id = node_id;
         c.straightLen = jumpdist;
         c.stepCnt = 0;
+        c.gVal = gVal(node_id);
         set_pruned();
       }
     }
 
-    inline void updateConstraint() {
-      Constraint& c = rmapflag? constraintV: constraintH;
+    inline void updateV() {
+      etypeV = this->etype;
+      _updateConstraint(this->constraintV);
+    }
+
+    inline void updateH() {
+      etypeH = this->etype;
+      _updateConstraint(this->constraintH);
+    }
+
+    inline void _updateConstraint(Constraint& c) {
       c.stepCnt++;
       switch (this->etype) {
         case pruned: break;
@@ -103,6 +113,7 @@ class online_jps_pruner {
       pruned,     // ended by pruning strategy
       reached     // ended at target
     } etype;
+    EndType etypeV, etypeH;
 
     inline void init(uint32_t tot) {
       vis.resize(tot);
@@ -114,10 +125,22 @@ class online_jps_pruner {
     inline void set_pruned() { this->etype = pruned; }
     inline void set_deadend() { this->etype = deadend; }
     inline void set_reached() { this->etype = reached; }
+
     inline bool is_forced() { return this->etype == forced; }
+    inline bool is_forcedH() { return this->etypeH == forced; }
+    inline bool is_forcedV() { return this->etypeV == forced; }
+
     inline bool is_pruned() { return this->etype == pruned; }
+    inline bool is_prunedH() { return this->etypeH == pruned; }
+    inline bool is_prunedV() { return this->etypeV == pruned; }
+
     inline bool is_deadend() { return this->etype == deadend; }
+    inline bool is_deadendH() { return this->etypeH == deadend; }
+    inline bool is_deadendV() { return this->etypeV == deadend; }
+
     inline bool is_reached() { return this->etype == reached; }
+    inline bool is_reachedH() { return this->etypeH == reached; }
+    inline bool is_reachedV() { return this->etypeV == reached; }
 
     inline bool gValPruned(const uint32_t& jumpnode_id, const warthog::cost_t& c) {
 
