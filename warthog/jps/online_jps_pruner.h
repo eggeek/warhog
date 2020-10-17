@@ -91,6 +91,12 @@ class online_jps_pruner {
 
     inline void _updateConstraint(Constraint& c) {
       c.stepCnt++;
+      if (c.stepCnt >= c.straightLen) {
+        c.straightLen = warthog::INF;
+        c.gVal = warthog::INF;
+        c.stepCnt = 0;
+        return;
+      }
       switch (this->etype) {
         case pruned: break;
         case reached:
@@ -163,7 +169,7 @@ class online_jps_pruner {
     inline bool constraintPruned() {
       const Constraint& c = this->rmapflag? this->constraintV: this->constraintH;
       if (c.stepCnt + this->jumpdist >= c.straightLen &&
-          gVal(c.node_id) + c.stepCnt * warthog::ONE < this->curg + this->jumpdist * warthog::ONE) {
+          c.gVal + c.stepCnt * warthog::ONE < this->curg + (c.straightLen - c.stepCnt) * warthog::ONE) {
         this->set_pruned();
         return true;
       }
