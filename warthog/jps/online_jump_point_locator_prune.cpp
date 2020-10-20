@@ -182,8 +182,21 @@ JPL::__jump_east(uint32_t node_id,
     {
       uint32_t stop_pos = __builtin_ffs(stop_bits)-1; // returns idx+1
       jumpnode_id += stop_pos; 
-      deadend = deadend_bits & (1 << stop_pos);
       jpruner->jumpdist = jumpnode_id - node_id;
+      if (jprune && stop_pos > 1 && jpruner->constraintPruned()) {
+        #ifndef NDEBUG
+        if (verbose) {
+          uint32_t cid = jumpnode_id, x, y;
+          if (jpruner->rmapflag) cid = rmap_id_to_map_id(cid);
+          y = cid / map_->width();
+          x = cid % map_->width();
+          std::cerr << "Jlimit Prune: (" << x << ", " << y << ")" << "\t";
+          std::cerr << "jumpdist: " << jpruner->jumpdist << std::endl;
+        }
+        #endif
+        break;
+      }
+      deadend = deadend_bits & (1 << stop_pos);
       if (deadend) break;
       if (gValPruned(jumpnode_id)) break;
       createConstraint(jumpnode_id, jpruner->jumpdist * warthog::ONE + jpruner->curg);
@@ -285,8 +298,21 @@ JPL::__jump_west(uint32_t node_id,
     {
       uint32_t stop_pos = __builtin_clz(stop_bits);
       jumpnode_id -= stop_pos;
-      deadend = deadend_bits & (0x80000000 >> stop_pos);
       jpruner->jumpdist = node_id - jumpnode_id;
+      if (jprune && stop_pos > 1 && jpruner->constraintPruned()) {
+        #ifndef NDEBUG
+        if (verbose) {
+          uint32_t cid = jumpnode_id, x, y;
+          if (jpruner->rmapflag) cid = rmap_id_to_map_id(cid);
+          y = cid / map_->width();
+          x = cid % map_->width();
+          std::cerr << "Jlimit Prune: (" << x << ", " << y << ")" << "\t";
+          std::cerr << "jumpdist: " << jpruner->jumpdist << std::endl;
+        }
+        #endif
+        break;
+      }
+      deadend = deadend_bits & (0x80000000 >> stop_pos);
       if (deadend) break;
       if (gValPruned(jumpnode_id)) break;
       createConstraint(jumpnode_id, jpruner->jumpdist * warthog::ONE + jpruner->curg);
