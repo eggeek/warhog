@@ -4,6 +4,7 @@
 #include "search_node.h"
 #include "constants.h"
 #include "gridmap.h"
+#include "problem_instance.h"
 
 namespace warthog {
 
@@ -20,7 +21,7 @@ class online_jps_pruner {
 
     warthog::cost_t curg;
     uint32_t jumpdist;
-    uint32_t start_id;
+    uint32_t search_id;
 
     struct Constraint {
       /*
@@ -63,9 +64,9 @@ class online_jps_pruner {
     Constraint constraintH, constraintV;
 
     inline void createConstraint(uint32_t node_id, warthog::cost_t cost) {
-      if (vis[node_id].first != start_id || vis[node_id].second >= cost) {
+      if (vis[node_id].first != search_id || vis[node_id].second >= cost) {
         // current path is better
-        vis[node_id] = {start_id, cost};
+        vis[node_id] = {search_id, cost};
         set_forced();
       }
       else {
@@ -150,8 +151,8 @@ class online_jps_pruner {
 
     inline bool gValPruned(const uint32_t& jumpnode_id, const warthog::cost_t& c) {
 
-      if (vis[jumpnode_id].first != start_id || vis[jumpnode_id].second == warthog::INF) {
-        vis[jumpnode_id] = {start_id, c};
+      if (vis[jumpnode_id].first != search_id || vis[jumpnode_id].second == warthog::INF) {
+        vis[jumpnode_id] = {search_id, c};
         return false;
       }
       else {
@@ -160,7 +161,7 @@ class online_jps_pruner {
           return true;
         }
         else {
-          vis[jumpnode_id] = {start_id, c};
+          vis[jumpnode_id] = {search_id, c};
           return false;
         }
       }
@@ -178,7 +179,7 @@ class online_jps_pruner {
     }
 
     inline uint32_t gVal(const uint32_t& jumpnode_id) {
-      if (vis[jumpnode_id].first != start_id) return warthog::INF;
+      if (vis[jumpnode_id].first != search_id) return warthog::INF;
       else return vis[jumpnode_id].second;
     }
 
@@ -186,9 +187,9 @@ class online_jps_pruner {
       this->curg = cur->get_g();
     }
 
-    inline void startExpand(const uint32_t& start_id, search_node* cur) {
+    inline void startExpand(problem_instance* instance, search_node* cur) {
       this->set_forced();
-      this->start_id = start_id;
+      this->search_id = instance->get_searchid();
       this->rmapflag = false;
       this->cur = cur;
       for (int i=0; i<4; i++) {

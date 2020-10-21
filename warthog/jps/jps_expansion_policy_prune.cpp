@@ -39,7 +39,7 @@ warthog::jps_expansion_policy_prune::expand(
 	uint32_t succ_dirs = warthog::jps::compute_successors(dir_c, c_tiles);
 	uint32_t goal_id = problem->get_goal();
 
-  jpruner.startExpand(problem->get_start(), current);
+  jpruner.startExpand(problem, current);
 	for(uint32_t i = 0; i < 8; i++)
 	{
 		warthog::jps::direction d = (warthog::jps::direction) (1 << i);
