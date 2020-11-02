@@ -3,7 +3,6 @@
 #include <map>
 #include <string>
 
-
 #include "catch.hpp"
 #include "gridmap.h"
 #include "jps_expansion_policy_prune.h"
@@ -19,7 +18,7 @@ struct node {
   int x, y;
 };
 
-const double eps = 1e-4;
+const double eps = 1e-2;
 namespace w=warthog;
 
 void run(w::gridmap& map, vector<node>& s, vector<node>& t, bool verbose=false) {
