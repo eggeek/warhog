@@ -32,7 +32,7 @@ void run(w::gridmap& map, vector<node>& s, vector<node>& t, bool verbose=false) 
       w::jps_expansion_policy_prune> astar0(&heuristic0, &jps0);
 
     jps0.get_locator()->jprune = true;
-    jps0.get_locator()->gprune = true;
+    jps0.get_locator()->gprune = false;
     astar0.set_verbose(verbose);
 
     w::jps_expansion_policy_prune jps1(&map);

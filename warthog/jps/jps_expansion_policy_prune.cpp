@@ -57,13 +57,6 @@ warthog::jps_expansion_policy_prune::expand(
 				// move terminator character as we go
 				neighbours_[++num_neighbours_] = 0;
 			}
-
-      // straight-scanning may create constraints for diag-scanning
-      if (i < 4 && succ_id != warthog::INF) {
-        if (current->get_g() + jumpcost > jpruner.gVal(succ_id)) {
-          jpruner.constraints[i] = {succ_id, jpruner.jumpdist, 0, jpruner.gVal(succ_id)};
-        }
-      }
 		}
 	}
 }

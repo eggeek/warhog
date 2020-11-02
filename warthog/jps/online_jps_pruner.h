@@ -59,11 +59,25 @@ class online_jps_pruner {
                straightLen,   // num of straight steps from "a" to "b"
                stepCnt;       // num of diagonal moves made from creating "b"
       warthog::cost_t gVal;
+
+      inline void incStep() {
+        stepCnt++;
+        if (stepCnt >= straightLen) {
+          straightLen = warthog::INF;
+          gVal = warthog::INF;
+          stepCnt = 0;
+        }
+      }
     };
     Constraint constraints[4];
-    Constraint constraintH, constraintV;
+    Constraint *constraintH, *constraintV, *curConstraint;
 
-    inline void createConstraint(uint32_t node_id, warthog::cost_t cost) {
+    inline void setCurConstraint() {
+      if (rmapflag) curConstraint = constraintV;
+      else curConstraint = constraintH;
+    }
+
+    inline void updateConstraint(uint32_t node_id, warthog::cost_t cost) {
       if (vis[node_id].first != search_id || vis[node_id].second >= cost) {
         // current path is better
         vis[node_id] = {search_id, cost};
@@ -71,48 +85,28 @@ class online_jps_pruner {
       }
       else {
         // there is a better path, then update constraint
-        Constraint& c = rmapflag? constraintV: constraintH;
-        c.node_id = node_id;
-        c.straightLen = jumpdist;
-        c.stepCnt = 0;
-        c.gVal = gVal(node_id);
+        curConstraint->node_id = node_id;
+        curConstraint->straightLen = jumpdist;
+        curConstraint->stepCnt = 0;
+        curConstraint->gVal = vis[node_id].second;
         set_pruned();
       }
     }
 
-    inline void updateV() {
+    inline void incStepV() {
       etypeV = this->etype;
-      _updateConstraint(this->constraintV);
+      constraintV->incStep();
     }
 
-    inline void updateH() {
+    inline void incStepH() {
       etypeH = this->etype;
-      _updateConstraint(this->constraintH);
+      this->constraintH->incStep();
     }
 
-    inline void _updateConstraint(Constraint& c) {
-      c.stepCnt++;
-      if (c.stepCnt >= c.straightLen) {
-        c.straightLen = warthog::INF;
-        c.gVal = warthog::INF;
-        c.stepCnt = 0;
-        return;
-      }
-      switch (this->etype) {
-        case pruned: break;
-        case reached:
-          c.straightLen = 0; break;
-        case deadend:
-          c.straightLen = warthog::INF; break;
-        case forced:
-          c.straightLen = warthog::INF; break;
-      }
-    }
-
-    inline void set_north_constraint() { constraintV = constraints[0]; }
-    inline void set_south_constraint() { constraintV = constraints[1]; }
-    inline void set_east_constraint() { constraintH = constraints[2]; }
-    inline void set_west_constraint() { constraintH = constraints[3]; }
+    inline void set_north_constraint() { constraintV = &(constraints[0]); }
+    inline void set_south_constraint() { constraintV = &constraints[1]; }
+    inline void set_east_constraint() { constraintH = &constraints[2]; }
+    inline void set_west_constraint() { constraintH = &constraints[3]; }
 
     enum EndType {
       forced,     // ended at a forced neighbour
@@ -168,7 +162,7 @@ class online_jps_pruner {
     }
 
     inline bool constraintPruned() {
-      const Constraint& c = this->rmapflag? this->constraintV: this->constraintH;
+      const Constraint& c = *curConstraint;
       if (c.stepCnt + this->jumpdist >= c.straightLen &&
           c.gVal + c.stepCnt * warthog::ONE < this->curg + (c.straightLen - c.stepCnt) * warthog::ONE) {
         this->set_pruned();
