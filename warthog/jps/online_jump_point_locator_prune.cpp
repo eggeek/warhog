@@ -158,7 +158,7 @@ JPL::__jump_east(uint32_t node_id,
   bool deadend = false;
 
   jumpnode_id = node_id;
-  jpruner->setCurConstraint();
+  if (jprune) jpruner->setCurConstraint();
   while(true)
   {
     // read in tiles from 3 adjacent rows. the curent node 
@@ -176,31 +176,38 @@ JPL::__jump_east(uint32_t node_id,
     uint32_t 
     deadend_bits = ~neis[1];
 
+    uint32_t corner_pos = jpruner->corner_pos(neis);
     // stop if we found any forced or dead-end tiles
     int stop_bits = (forced_bits | deadend_bits);
     if(stop_bits)
     {
       uint32_t stop_pos = __builtin_ffs(stop_bits)-1; // returns idx+1
+
+      if (jprune && corner_pos < stop_pos) {
+        updateConstraint(jumpnode_id + corner_pos, jumpnode_id - node_id + corner_pos);
+        if (jpruner->is_pruned()) {
+          jumpnode_id += corner_pos;
+          break;
+        }
+      }
+
       jumpnode_id += stop_pos; 
       jpruner->jumpdist = jumpnode_id - node_id;
-      if (jprune && stop_pos > 1 && jpruner->constraintPruned()) {
-        #ifndef NDEBUG
-        if (verbose) {
-          uint32_t cid = jumpnode_id, x, y;
-          if (jpruner->rmapflag) cid = rmap_id_to_map_id(cid);
-          y = cid / map_->width();
-          x = cid % map_->width();
-          std::cerr << "Jlimit Prune: (" << x << ", " << y << ")" << "\t";
-          std::cerr << "jumpdist: " << jpruner->jumpdist << std::endl;
-        }
-        #endif
-        break;
-      }
+      if (jprune && stop_pos > 1 && jpruner->constraintPruned()) { break; }
       deadend = deadend_bits & (1 << stop_pos);
       if (deadend) break;
       if (gValPruned(jumpnode_id)) break;
-      updateConstraint(jumpnode_id, jpruner->jumpdist * warthog::ONE + jpruner->curg);
+      if (jprune) updateConstraint(jumpnode_id, jpruner->jumpdist);
+      else jpruner->set_forced();
       break;
+    }
+
+    if (jprune && corner_pos != warthog::INF) {
+      updateConstraint(jumpnode_id + corner_pos, jumpnode_id - node_id + corner_pos);
+      if (jpruner->is_pruned()) {
+        jumpnode_id += corner_pos;
+        break;
+      }
     }
 
     jpruner->jumpdist = (jumpnode_id - node_id);
@@ -208,19 +215,7 @@ JPL::__jump_east(uint32_t node_id,
       break;
     }
 
-    if (jprune && jpruner->constraintPruned()) { 
-      #ifndef NDEBUG
-      if (verbose) {
-        uint32_t cid = jumpnode_id, x, y;
-        if (jpruner->rmapflag) cid = rmap_id_to_map_id(cid);
-        y = cid / map_->width();
-        x = cid % map_->width();
-        std::cerr << "Jlimit Prune: (" << x << ", " << y << ")" << "\t";
-        std::cerr << "jumpdist: " << jpruner->jumpdist << std::endl;
-      }
-      #endif
-      break;
-    }
+    if (jprune && jpruner->constraintPruned()) { break; }
     // jump to the last position in the cache. we do not jump past the end
     // in case the last tile from the row above or below is an obstacle.
     // Such a tile, followed by a non-obstacle tile, would yield a forced 
@@ -234,10 +229,9 @@ JPL::__jump_east(uint32_t node_id,
   if(num_steps > goal_dist)
   {
     jpruner->jumpdist = goal_dist;
-    jpruner->set_reached();
     jumpnode_id = goal_id;
     jumpcost = goal_dist * warthog::ONE;
-    updateConstraint(jumpnode_id, jumpcost + jpruner->curg);
+    jpruner->set_forced();
     return goal_dist;
   }
 
@@ -279,7 +273,7 @@ JPL::__jump_west(uint32_t node_id,
   uint32_t neis[3] = {0, 0, 0};
 
   jumpnode_id = node_id;
-  jpruner->setCurConstraint();
+  if (jprune) jpruner->setCurConstraint();
   while(true)
   {
     // cache 32 tiles from three adjacent rows.
@@ -293,51 +287,46 @@ JPL::__jump_west(uint32_t node_id,
     uint32_t 
     deadend_bits = ~neis[1];
 
+    uint32_t corner_pos = jpruner->corner_pos_upper(neis);
     // stop if we encounter any forced or deadend nodes
     uint32_t stop_bits = (forced_bits | deadend_bits);
     if(stop_bits)
     {
       uint32_t stop_pos = __builtin_clz(stop_bits);
+
+      if (jprune && corner_pos < stop_pos) {
+        updateConstraint(jumpnode_id - corner_pos, node_id - jumpnode_id + corner_pos);
+        if (jpruner->is_pruned()) {
+          jumpnode_id -= corner_pos;
+          break;
+        }
+      }
+
       jumpnode_id -= stop_pos;
       jpruner->jumpdist = node_id - jumpnode_id;
-      if (jprune && stop_pos > 1 && jpruner->constraintPruned()) {
-        #ifndef NDEBUG
-        if (verbose) {
-          uint32_t cid = jumpnode_id, x, y;
-          if (jpruner->rmapflag) cid = rmap_id_to_map_id(cid);
-          y = cid / map_->width();
-          x = cid % map_->width();
-          std::cerr << "Jlimit Prune: (" << x << ", " << y << ")" << "\t";
-          std::cerr << "jumpdist: " << jpruner->jumpdist << std::endl;
-        }
-        #endif
-        break;
-      }
+      if (jprune && stop_pos > 1 && jpruner->constraintPruned()) break;
       deadend = deadend_bits & (0x80000000 >> stop_pos);
       if (deadend) break;
       if (gValPruned(jumpnode_id)) break;
-      updateConstraint(jumpnode_id, jpruner->jumpdist * warthog::ONE + jpruner->curg);
+      if (jprune) updateConstraint(jumpnode_id, jpruner->jumpdist);
+      else jpruner->set_forced();
       break;
+    }
+
+    if (jprune && corner_pos != warthog::INF) {
+      updateConstraint(jumpnode_id - corner_pos, node_id - jumpnode_id + corner_pos);
+      if (jpruner->is_pruned()) {
+        jumpnode_id -= corner_pos;
+        break;
+      }
     }
 
     jpruner->jumpdist = (node_id - jumpnode_id);
     if (gValPruned(jumpnode_id)) {
       break;
     }
-    if (jprune && jpruner->constraintPruned()) { 
-      #ifndef NDEBUG
-      if (verbose) {
-        uint32_t cid = jumpnode_id, x, y;
-        if (jpruner->rmapflag) cid = rmap_id_to_map_id(cid);
-        y = cid / map_->width();
-        x = cid % map_->width();
-        std::cerr << "Jlimit Prune: (" << x << ", " << y << ")" << "\t";
-        std::cerr << "jumpdist: " << jpruner->jumpdist << std::endl;
-      }
-      #endif
-      break;
-    }
 
+    if (jprune && jpruner->constraintPruned()) { break; }
     // jump to the end of cache. jumping +32 involves checking
     // for forced neis between adjacent sets of contiguous tiles
     jumpnode_id -= 31;
@@ -349,10 +338,9 @@ JPL::__jump_west(uint32_t node_id,
   if(num_steps > goal_dist)
   {
     jpruner->jumpdist = goal_dist;
-    jpruner->set_reached();
     jumpnode_id = goal_id;
     jumpcost = goal_dist * warthog::ONE;
-    updateConstraint(jumpnode_id, jumpcost + jpruner->curg);
+    jpruner->set_forced();
     return goal_dist;
   }
 

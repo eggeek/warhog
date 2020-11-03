@@ -23,6 +23,14 @@ class online_jps_pruner {
     uint32_t jumpdist;
     uint32_t search_id;
 
+    enum EndType {
+      forced,     // ended at a forced neighbour
+      deadend,    // ended at a deadend
+      pruned,     // ended by pruning strategy
+      reached     // ended at target
+    } etype;
+    EndType etypeV, etypeH;
+
     struct Constraint {
       /*
        *     b------*
@@ -60,12 +68,21 @@ class online_jps_pruner {
                stepCnt;       // num of diagonal moves made from creating "b"
       warthog::cost_t gVal;
 
-      inline void incStep() {
+      inline void incStep(const EndType& etype) {
         stepCnt++;
         if (stepCnt >= straightLen) {
           straightLen = warthog::INF;
           gVal = warthog::INF;
           stepCnt = 0;
+        }
+        switch (etype) {
+          case pruned: break;
+          case reached:
+            straightLen = 0; break;
+          case deadend:
+            straightLen = warthog::INF; break;
+          case forced:
+            straightLen = warthog::INF; break;
         }
       }
     };
@@ -77,7 +94,8 @@ class online_jps_pruner {
       else curConstraint = constraintH;
     }
 
-    inline void updateConstraint(uint32_t node_id, warthog::cost_t cost) {
+    inline void updateConstraint(uint32_t node_id, uint32_t dist) {
+      warthog::cost_t cost = dist * warthog::ONE + curg;
       if (vis[node_id].first != search_id || vis[node_id].second >= cost) {
         // current path is better
         vis[node_id] = {search_id, cost};
@@ -86,7 +104,7 @@ class online_jps_pruner {
       else {
         // there is a better path, then update constraint
         curConstraint->node_id = node_id;
-        curConstraint->straightLen = jumpdist;
+        curConstraint->straightLen = dist;
         curConstraint->stepCnt = 0;
         curConstraint->gVal = vis[node_id].second;
         set_pruned();
@@ -95,26 +113,38 @@ class online_jps_pruner {
 
     inline void incStepV() {
       etypeV = this->etype;
-      constraintV->incStep();
+      constraintV->incStep(etype);
     }
 
     inline void incStepH() {
       etypeH = this->etype;
-      this->constraintH->incStep();
+      constraintH->incStep(etype);
+    }
+
+    inline uint32_t corner_pos(uint32_t (&neis)[3]) {
+      uint32_t 
+      corner_bits = (~neis[0] >> 1) & neis[0];
+      corner_bits |= (~neis[2] >> 1) & neis[2];
+      // detect any corner or dead-end tiles
+      corner_bits |= ~neis[1];
+      if (corner_bits) return __builtin_ffs(corner_bits) - 1;
+      else return warthog::INF;
+    }
+
+    inline uint32_t corner_pos_upper(uint32_t (&neis)[3]) {
+      uint32_t 
+      corner_bits = (~neis[0] << 1) & neis[0];
+      corner_bits |= (~neis[2] << 1) & neis[2];
+      // detect any corner or dead-end tiles
+      corner_bits |= ~neis[1];
+      if (corner_bits) return __builtin_clz(corner_bits);
+      else return warthog::INF;
     }
 
     inline void set_north_constraint() { constraintV = &(constraints[0]); }
     inline void set_south_constraint() { constraintV = &constraints[1]; }
     inline void set_east_constraint() { constraintH = &constraints[2]; }
     inline void set_west_constraint() { constraintH = &constraints[3]; }
-
-    enum EndType {
-      forced,     // ended at a forced neighbour
-      deadend,    // ended at a deadend
-      pruned,     // ended by pruning strategy
-      reached     // ended at target
-    } etype;
-    EndType etypeV, etypeH;
 
     inline void init(uint32_t tot) {
       vis.resize(tot);

@@ -134,11 +134,11 @@ class online_jump_point_locator_prune
     }
 
     inline void
-    updateConstraint(uint32_t jumpnode_id, warthog::cost_t c) {
+    updateConstraint(uint32_t jumpnode_id, uint32_t dist) {
       if (jpruner->rmapflag) {
         jumpnode_id = rmap_id_to_map_id(jumpnode_id);
       }
-      jpruner->updateConstraint(jumpnode_id, c);
+      jpruner->updateConstraint(jumpnode_id, dist);
     }
 
     inline uint32_t
