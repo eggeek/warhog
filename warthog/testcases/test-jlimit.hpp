@@ -4,6 +4,7 @@
 #include <string>
 
 #include "catch.hpp"
+#include "experiment.h"
 #include "gridmap.h"
 #include "jps_expansion_policy_prune.h"
 #include "online_jump_point_locator_prune.h"
@@ -74,7 +75,7 @@ void run(w::gridmap& map, vector<node>& s, vector<node>& t, bool verbose=false) 
       int e1 = astar1.get_nodes_expanded();
 
       if (fabs(len - len2) > eps || e0 > e1) {
-        cerr << "1\t" << map.filename() << "\t" << map.header_height()
+        cerr << i << "\t" << map.filename() << "\t" << map.header_height()
              << "\t" << map.header_width() << "\t" << s[i].x << "\t" << s[i].y
              << "\t" << t[i].x << "\t" << t[i].y << "\t" << len2 << endl;
         cerr << "len: " << len << ", len2: " << len2 << endl;
@@ -88,6 +89,33 @@ void run(w::gridmap& map, vector<node>& s, vector<node>& t, bool verbose=false) 
     cout << "jlimit\t" << exp0 << "\t" << gen0 << "\t" << touch0 << "\t" << time0 << "\t" << tot0 << endl;
     cout << "normal\t" << exp1 << "\t" << gen1 << "\t" << touch1 << "\t" << time1 << "\t" << tot1 << endl;
 
+}
+
+void run_scen(w::gridmap& gridmap, w::scenario_manager& scenmgr) {
+  vector<node> s, t;
+  for (int i=0; i<(int)scenmgr.num_experiments(); i++) {
+    w::experiment* exp = scenmgr.get_experiment(i);
+    s.push_back({(int)exp->startx(), (int)exp->starty()});
+    t.push_back({(int)exp->goalx(), (int)exp->goaly()});
+  }
+  run(gridmap, s, t, false);
+}
+
+TEST_CASE("jlimit-scen") {
+  string map_dir = "./maps/starcraft/";
+  string scen_dir = "../scenarios/movingai/starcraft/";
+  vector<string> maps = {
+   "Archipelago.map",
+   // "ArcticStation.map"
+  };
+  w::scenario_manager scenmgr;
+  for (string m: maps) {
+    string mpath = map_dir + m;
+    string spath = scen_dir + m + ".scen";
+    w::gridmap gridmap(mpath.c_str());
+    scenmgr.load_scenario(spath.c_str());
+    run_scen(gridmap, scenmgr);
+  }
 }
 
 TEST_CASE("jlimit-random") {
