@@ -193,9 +193,9 @@ JPL::__jump_east(uint32_t node_id,
 
       jumpnode_id += stop_pos; 
       jpruner->jumpdist = jumpnode_id - node_id;
-      if (jprune && stop_pos > 1 && jpruner->constraintPruned()) { break; }
       deadend = deadend_bits & (1 << stop_pos);
       if (deadend) break;
+      if (jprune && stop_pos > 1 && jpruner->constraintPruned()) { break; }
       if (gValPruned(jumpnode_id)) break;
       if (jprune) updateConstraint(jumpnode_id, jpruner->jumpdist);
       else jpruner->set_forced();
@@ -304,9 +304,9 @@ JPL::__jump_west(uint32_t node_id,
 
       jumpnode_id -= stop_pos;
       jpruner->jumpdist = node_id - jumpnode_id;
-      if (jprune && stop_pos > 1 && jpruner->constraintPruned()) break;
       deadend = deadend_bits & (0x80000000 >> stop_pos);
       if (deadend) break;
+      if (jprune && stop_pos > 1 && jpruner->constraintPruned()) break;
       if (gValPruned(jumpnode_id)) break;
       if (jprune) updateConstraint(jumpnode_id, jpruner->jumpdist);
       else jpruner->set_forced();
