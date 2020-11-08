@@ -95,14 +95,18 @@ class online_jps_pruner {
     }
 
     inline void updateConstraint(uint32_t node_id, uint32_t dist) {
-      warthog::cost_t cost = dist * warthog::ONE + curg;
-      if (vis[node_id].first != search_id || vis[node_id].second >= cost) {
+      warthog::cost_t d = dist * warthog::ONE;
+      if (vis[node_id].first != search_id || vis[node_id].second >= d + curg) {
         // current path is better
-        vis[node_id] = {search_id, cost};
+        vis[node_id] = {search_id, d + curg};
         set_forced();
       }
+      else if (vis[node_id].second + d < curg) {
+        // there is a better path to current position
+        set_deadend();
+      }
       else {
-        // there is a better path, then update constraint
+        // there is a better path to scanned node, then update constraint
         curConstraint->node_id = node_id;
         curConstraint->straightLen = dist;
         curConstraint->stepCnt = 0;
