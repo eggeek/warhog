@@ -34,15 +34,22 @@ class online_jps_pruner {
     struct Constraint {
       /*
        *     b------*
+       *    #|  |    /
+       *    #d2 |   /
        *    #|  |  /
-       *    #| jp /
-       *    #|  |/
-       *    #d  i
-       *    #| /
+       *    #|  | /
+       *    #m.........
+       *    #|  /
+       *    #d1/
        *    #|/
        *     c
        *    /
        *   a
+       *    
+       *    Fields:
+       *      * d: |cb|
+       *      * dm: |cm|
+       *      * stepCnt: number of diagonal moves
        *
        *    when expanding "a", we can create a constraint based on the scanned jump point "b"
        *    to avoid redundant scanning when move diagonal
@@ -51,38 +58,45 @@ class online_jps_pruner {
        *      when gc + d > gb
        *
        *    Apply constraint:
-       *      When stepCnt + jumpdist == straightLen
+       *      When:
+       *        1. stepCnt + jumpdist >= d1;
+       *           prune if gc + stepCnt * sqrt(2) + (d1 - stepCnt) > gb + d2 + stepCnt;
+       *           stop scanning if gc + stepCnt * sqrt(2) > gb + d2 + stepCnt + (d1 - stepCnt)
        *
-       *    Pruned:
+       *        2. stepCnt + jumpdist >= d1 + d2;
+       *           prune if gc + stepCnt * sqrt(2) + (d1 + d2 - stepCnt) > gb + stepCnt;
+       *           stop scanning if gc + stepCnt * sqrt(2) > gb + stepCnt + (d1 + d2 - stepCnt);
+       *
        *      When apply constraint and gi + jp > gb + stepCnt
        *
        *    Update constraint:
        *      when pruned                       --> keep using this constraint in next iteration
-       *      when get deadend before apply     --> straightLen = INF
-       *      when get goal before apply        --> straightLen = 0, no further scanning
+       *      when get deadend before apply     --> d = INF
+       *      when get goal before apply        --> d = 0, no further scanning
        *      when get jump point before apply  --> set new constraint when jump is better
-       *                                        --> else straightLen = INF
+       *                                        --> else d = INF
        */
       uint32_t node_id,       // node id of "b"
-               straightLen,   // num of straight steps from "a" to "b"
+               d,             // distance from "c" to "b"
+               dm,            // ceiled distance from "c" to "m"
                stepCnt;       // num of diagonal moves made from creating "b"
       warthog::cost_t gVal;
 
       inline void incStep(const EndType& etype) {
         stepCnt++;
-        if (stepCnt >= straightLen) {
-          straightLen = warthog::INF;
+        if (stepCnt >= d) {
+          d = warthog::INF;
           gVal = warthog::INF;
           stepCnt = 0;
         }
         switch (etype) {
           case pruned: break;
           case reached:
-            straightLen = 0; break;
+            gVal = d = dm = 0; break;
           case deadend:
-            straightLen = warthog::INF; break;
+            gVal = d = dm = warthog::INF; break;
           case forced:
-            straightLen = warthog::INF; break;
+            gVal = d = dm = warthog::INF; break;
         }
       }
     };
@@ -108,9 +122,10 @@ class online_jps_pruner {
       else {
         // there is a better path to scanned node, then update constraint
         curConstraint->node_id = node_id;
-        curConstraint->straightLen = dist;
-        curConstraint->stepCnt = 0;
         curConstraint->gVal = vis[node_id].second;
+        curConstraint->d = dist;
+        curConstraint->dm = (curConstraint->gVal - curg + dist + 1) >> 1; // ceiling
+        curConstraint->stepCnt = 0;
         set_pruned();
       }
     }
@@ -197,13 +212,28 @@ class online_jps_pruner {
 
     inline bool constraintPruned() {
       const Constraint& c = *curConstraint;
-      if (c.stepCnt + this->jumpdist >= c.straightLen &&
-          c.gVal + c.stepCnt * warthog::ONE < this->curg + (c.straightLen - c.stepCnt) * warthog::ONE) {
-        this->set_pruned();
+      if (c.gVal == warthog::INF) return false; // the constraint is no longer valid
+
+      uint32_t d2 = c.d - c.dm;
+      if (curg > c.gVal + c.d * warthog::ONE) {
+        set_deadend();
         return true;
       }
-      else
-        return false;
+      if (c.stepCnt + jumpdist >= c.d) {
+        if (curg + (c.d - c.stepCnt) * warthog::ONE > c.gVal + c.stepCnt * warthog::ONE) {
+          set_pruned();
+          return true;
+        }
+        else return false;
+      }
+      else if (c.stepCnt + jumpdist >= c.dm) {
+        if (curg + (c.dm - c.stepCnt) * warthog::ONE > c.gVal + (d2 + c.stepCnt) * warthog::ONE) {
+          set_pruned();
+          return true;
+        }
+        else return false;
+      }
+      else return false;
     }
 
     inline uint32_t gVal(const uint32_t& jumpnode_id) {
@@ -221,7 +251,7 @@ class online_jps_pruner {
       this->rmapflag = false;
       this->cur = cur;
       for (int i=0; i<4; i++) {
-        this->constraints[i] = {warthog::INF, warthog::INF, 0};
+        this->constraints[i] = {warthog::INF, warthog::INF, warthog::INF, 0};
       }
     }
 };
