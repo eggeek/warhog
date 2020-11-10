@@ -91,6 +91,7 @@ uint32_t
 JPL::jump_north(uint32_t node_id, 
     uint32_t goal_id, uint32_t& jumpnode_id, warthog::cost_t& jumpcost)
 {
+  jpruner->curid = node_id;
   node_id = this->map_id_to_rmap_id(node_id);
   goal_id = this->map_id_to_rmap_id(goal_id);
   this->jpruner->rmapflag = true;
@@ -115,7 +116,7 @@ uint32_t
 JPL::jump_south(uint32_t node_id,
     uint32_t goal_id, uint32_t& jumpnode_id, warthog::cost_t& jumpcost)
 {
-
+  jpruner->curid = node_id;
   node_id = this->map_id_to_rmap_id(node_id);
   goal_id = this->map_id_to_rmap_id(goal_id);
   this->jpruner->rmapflag = true;
@@ -140,6 +141,7 @@ uint32_t
 JPL::jump_east(uint32_t node_id, 
     uint32_t goal_id, uint32_t& jumpnode_id, warthog::cost_t& jumpcost)
 {
+  jpruner->curid = node_id;
   jpruner->rmapflag = false;
   jpruner->set_east_constraint();
   uint32_t res = __jump_east(node_id, goal_id, jumpnode_id, jumpcost, map_);
@@ -184,7 +186,7 @@ JPL::__jump_east(uint32_t node_id,
       uint32_t stop_pos = __builtin_ffs(stop_bits)-1; // returns idx+1
 
       if (jprune && corner_pos < stop_pos) {
-        updateConstraint(jumpnode_id + corner_pos, jumpnode_id - node_id + corner_pos);
+        jpruner->updateConstraint(1, jumpnode_id - node_id + corner_pos);
         if (jpruner->is_pruned()) {
           jumpnode_id += corner_pos;
           break;
@@ -197,13 +199,13 @@ JPL::__jump_east(uint32_t node_id,
       if (deadend) break;
       if (jprune && stop_pos > 1 && jpruner->constraintPruned()) { break; }
       if (gValPruned(jumpnode_id)) break;
-      if (jprune) updateConstraint(jumpnode_id, jpruner->jumpdist);
+      if (jprune) jpruner->updateConstraint(1, jpruner->jumpdist);
       else jpruner->set_forced();
       break;
     }
 
     if (jprune && corner_pos != warthog::INF) {
-      updateConstraint(jumpnode_id + corner_pos, jumpnode_id - node_id + corner_pos);
+      jpruner->updateConstraint(1, jumpnode_id - node_id + corner_pos);
       if (jpruner->is_pruned()) {
         jumpnode_id += corner_pos;
         break;
@@ -257,6 +259,7 @@ uint32_t
 JPL::jump_west(uint32_t node_id, 
     uint32_t goal_id, uint32_t& jumpnode_id, warthog::cost_t& jumpcost)
 {
+  jpruner->curid = node_id;
   jpruner->rmapflag = false;
   jpruner->set_west_constraint();
   uint32_t res = __jump_west(node_id, goal_id, jumpnode_id, jumpcost, map_);
@@ -295,7 +298,7 @@ JPL::__jump_west(uint32_t node_id,
       uint32_t stop_pos = __builtin_clz(stop_bits);
 
       if (jprune && corner_pos < stop_pos) {
-        updateConstraint(jumpnode_id - corner_pos, node_id - jumpnode_id + corner_pos);
+        jpruner->updateConstraint(-1, node_id - jumpnode_id + corner_pos);
         if (jpruner->is_pruned()) {
           jumpnode_id -= corner_pos;
           break;
@@ -308,13 +311,13 @@ JPL::__jump_west(uint32_t node_id,
       if (deadend) break;
       if (jprune && stop_pos > 1 && jpruner->constraintPruned()) break;
       if (gValPruned(jumpnode_id)) break;
-      if (jprune) updateConstraint(jumpnode_id, jpruner->jumpdist);
+      if (jprune) jpruner->updateConstraint(-1, jpruner->jumpdist);
       else jpruner->set_forced();
       break;
     }
 
     if (jprune && corner_pos != warthog::INF) {
-      updateConstraint(jumpnode_id - corner_pos, node_id - jumpnode_id + corner_pos);
+      jpruner->updateConstraint(-1, node_id - jumpnode_id + corner_pos);
       if (jpruner->is_pruned()) {
         jumpnode_id -= corner_pos;
         break;
@@ -381,7 +384,6 @@ JPL::jump_northeast(uint32_t node_id,
   uint32_t rnext_id = map_id_to_rmap_id(next_id);
   uint32_t rgoal_id = map_id_to_rmap_id(goal_id);
   uint32_t rmapw = rmap_->width();
-  assert(jpruner->curg == jpruner->cur->get_g());
   jpruner->set_north_constraint();
   jpruner->set_east_constraint();
   while(true)
@@ -393,6 +395,7 @@ JPL::jump_northeast(uint32_t node_id,
     next_id = next_id - mapw + 1;
     rnext_id = rnext_id + rmapw + 1;
 
+    jpruner->curid = next_id;
     jpruner->rmapflag = false;
     if (gValPruned(next_id)) break;
     // recurse straight before stepping again diagonally;
@@ -439,7 +442,6 @@ JPL::jump_northwest(uint32_t node_id,
   uint32_t rnext_id = map_id_to_rmap_id(next_id);
   uint32_t rgoal_id = map_id_to_rmap_id(goal_id);
   uint32_t rmapw = rmap_->width();
-  assert(jpruner->curg == jpruner->cur->get_g());
   jpruner->set_north_constraint();
   jpruner->set_west_constraint();
   while(true)
@@ -450,6 +452,7 @@ JPL::jump_northwest(uint32_t node_id,
     jpruner->jumpdist = 0;
     next_id = next_id - mapw - 1;
     rnext_id = rnext_id - (rmapw - 1);
+    jpruner->curid = next_id;
 
     jpruner->rmapflag = false;
     if (gValPruned(next_id)) break;
@@ -498,7 +501,6 @@ JPL::jump_southeast(uint32_t node_id,
   uint32_t rnext_id = map_id_to_rmap_id(next_id);
   uint32_t rgoal_id = map_id_to_rmap_id(goal_id);
   uint32_t rmapw = rmap_->width();
-  assert(jpruner->curg == jpruner->cur->get_g());
   jpruner->set_south_constraint();
   jpruner->set_east_constraint();
   while(true)
@@ -510,6 +512,7 @@ JPL::jump_southeast(uint32_t node_id,
     next_id = next_id + mapw + 1;
     rnext_id = rnext_id + rmapw - 1;
 
+    jpruner->curid = next_id;
     jpruner->rmapflag = false;
     if (gValPruned(next_id)) break;
 
@@ -557,7 +560,6 @@ JPL::jump_southwest(uint32_t node_id,
   uint32_t rnext_id = map_id_to_rmap_id(next_id);
   uint32_t rgoal_id = map_id_to_rmap_id(goal_id);
   uint32_t rmapw = rmap_->width();
-  assert(jpruner->curg == jpruner->cur->get_g());
   jpruner->set_south_constraint();
   jpruner->set_west_constraint();
   while(true)
@@ -569,6 +571,7 @@ JPL::jump_southwest(uint32_t node_id,
     next_id = next_id + mapw - 1;
     rnext_id = rnext_id - (rmapw + 1);
 
+    jpruner->curid = next_id;
     jpruner->rmapflag = false;
     if (gValPruned(next_id)) break;
     // recurse straight before stepping again diagonally;

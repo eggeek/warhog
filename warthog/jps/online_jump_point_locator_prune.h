@@ -133,14 +133,6 @@ class online_jump_point_locator_prune
       return jpruner->gValPruned(jumpnode_id, jpruner->jumpdist * warthog::ONE + jpruner->curg);
     }
 
-    inline void
-    updateConstraint(uint32_t jumpnode_id, uint32_t dist) {
-      if (jpruner->rmapflag) {
-        jumpnode_id = rmap_id_to_map_id(jumpnode_id);
-      }
-      jpruner->updateConstraint(jumpnode_id, dist);
-    }
-
     inline uint32_t
     gVal(uint32_t jumpnode_id) {
       if (jpruner->rmapflag) {

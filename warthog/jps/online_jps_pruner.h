@@ -20,6 +20,7 @@ class online_jps_pruner {
     vector<pic> vis;
 
     warthog::cost_t curg;
+    uint32_t curid;
     uint32_t jumpdist;
     uint32_t search_id;
 
@@ -108,7 +109,11 @@ class online_jps_pruner {
       else curConstraint = constraintH;
     }
 
-    inline void updateConstraint(uint32_t node_id, uint32_t dist) {
+    inline void updateConstraint(int direct, uint32_t dist) {
+      uint32_t node_id = curid;
+      if (rmapflag) node_id -= direct * (int)(dist * map->width());
+      else node_id += direct * (int)dist;
+
       warthog::cost_t d = dist * warthog::ONE;
       if (vis[node_id].first != search_id || vis[node_id].second >= d + curg) {
         // current path is better
