@@ -152,8 +152,8 @@ TEST_CASE("jlimit-maxscan") {
   for (const auto& mpath: mpaths) {
     w::gridmap map(mpath.c_str());
     int l = map.header_height();
-    vector<node> s = {{1, l / 2}};
-    vector<node> t = {{l-2, l / 2}};
+    vector<node> s = {{1, 1}};
+    vector<node> t = {{l-1, l-1}};
     run(map, s, t);
   }
 }
@@ -165,11 +165,17 @@ TEST_CASE("jlimit-empty") {
     "./testcases/maps/empty-512.map",
     "./testcases/maps/empty-1024.map"
   };
+  srand(time(NULL));
+  const int num = 100;
   for (const auto& mpath: mpaths) {
     w::gridmap map(mpath.c_str());
     int l = map.header_height();
-    vector<node> s = {{l / 2, l / 2}};
-    vector<node> t = {{l-1, l / 2}};
+    vector<node> s, t;
+    s.resize(num), t.resize(num);
+    for (int i=0; i<num; i++) {
+      s[i] = {rand() % (l-2), rand() % (l-2)};
+      t[i] = {l-1, rand() % (l-1)};
+    }
     run(map, s, t);
   }
 }
