@@ -187,7 +187,7 @@ JPL::__jump_east(uint32_t node_id,
 
       if (jprune && corner_pos < stop_pos) {
         jpruner->updateConstraint(1, jumpnode_id - node_id + corner_pos);
-        if (jpruner->is_pruned()) {
+        if (jpruner->is_pruned() || jpruner->is_terminated()) {
           jumpnode_id += corner_pos;
           break;
         }
@@ -198,7 +198,7 @@ JPL::__jump_east(uint32_t node_id,
       deadend = deadend_bits & (1 << stop_pos);
       if (deadend) break;
       if (jprune && stop_pos > 1 && jpruner->constraintPruned()) { break; }
-      if (gValPruned(jumpnode_id)) break;
+      if (gprune && jpruner->gValPruned(1, jpruner->jumpdist)) break;
       if (jprune) jpruner->updateConstraint(1, jpruner->jumpdist);
       else jpruner->set_forced();
       break;
@@ -206,14 +206,14 @@ JPL::__jump_east(uint32_t node_id,
 
     if (jprune && corner_pos != warthog::INF) {
       jpruner->updateConstraint(1, jumpnode_id - node_id + corner_pos);
-      if (jpruner->is_pruned()) {
+      if (jpruner->is_pruned() || jpruner->is_terminated()) {
         jumpnode_id += corner_pos;
         break;
       }
     }
 
     jpruner->jumpdist = (jumpnode_id - node_id);
-    if (gValPruned(jumpnode_id)) {
+    if (gprune && jpruner->gValPruned(1, jpruner->jumpdist)) {
       break;
     }
 
@@ -299,7 +299,7 @@ JPL::__jump_west(uint32_t node_id,
 
       if (jprune && corner_pos < stop_pos) {
         jpruner->updateConstraint(-1, node_id - jumpnode_id + corner_pos);
-        if (jpruner->is_pruned()) {
+        if (jpruner->is_pruned() || jpruner->is_terminated()) {
           jumpnode_id -= corner_pos;
           break;
         }
@@ -310,7 +310,7 @@ JPL::__jump_west(uint32_t node_id,
       deadend = deadend_bits & (0x80000000 >> stop_pos);
       if (deadend) break;
       if (jprune && stop_pos > 1 && jpruner->constraintPruned()) break;
-      if (gValPruned(jumpnode_id)) break;
+      if (gprune && jpruner->gValPruned(-1, jpruner->jumpdist)) break;
       if (jprune) jpruner->updateConstraint(-1, jpruner->jumpdist);
       else jpruner->set_forced();
       break;
@@ -318,14 +318,14 @@ JPL::__jump_west(uint32_t node_id,
 
     if (jprune && corner_pos != warthog::INF) {
       jpruner->updateConstraint(-1, node_id - jumpnode_id + corner_pos);
-      if (jpruner->is_pruned()) {
+      if (jpruner->is_pruned() || jpruner->is_terminated()) {
         jumpnode_id -= corner_pos;
         break;
       }
     }
 
     jpruner->jumpdist = (node_id - jumpnode_id);
-    if (gValPruned(jumpnode_id)) {
+    if (gprune && jpruner->gValPruned(-1, jpruner->jumpdist)) {
       break;
     }
 
@@ -397,7 +397,7 @@ JPL::jump_northeast(uint32_t node_id,
 
     jpruner->curid = next_id;
     jpruner->rmapflag = false;
-    if (gValPruned(next_id)) break;
+    if (gprune && jpruner->gValPruned(1, 0)) break;
     // recurse straight before stepping again diagonally;
     // (ensures we do not miss any optimal turning points)
     uint32_t jp_id1, jp_id2;
@@ -406,11 +406,13 @@ JPL::jump_northeast(uint32_t node_id,
     __jump_north(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     if(jp_id1 != warthog::INF && jpruner->is_forced()) { break; }
     jpruner->incStepV();
+    if (jpruner->is_terminatedV()) { next_id = warthog::INF; break; }
 
     jpruner->rmapflag = false;
     __jump_east(next_id, goal_id, jp_id2, cost2, map_);
     if(jp_id2 != warthog::INF && jpruner->is_forced()) { break; }
     jpruner->incStepH();
+    if (jpruner->is_terminatedH()) { next_id = warthog::INF; break; }
 
     // couldn't move in either straight dir; node_id is an obstacle
     if ( (cost1 == 0 && jpruner->is_deadendV()) || (cost2 == 0 && jpruner->is_deadendH())) {
@@ -455,7 +457,7 @@ JPL::jump_northwest(uint32_t node_id,
     jpruner->curid = next_id;
 
     jpruner->rmapflag = false;
-    if (gValPruned(next_id)) break;
+    if (gprune && jpruner->gValPruned(1, 0)) break;
     // recurse straight before stepping again diagonally;
     // (ensures we do not miss any optimal turning points)
     uint32_t jp_id1, jp_id2;
@@ -464,11 +466,13 @@ JPL::jump_northwest(uint32_t node_id,
     __jump_north(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     if(jp_id1 != warthog::INF && jpruner->is_forced()) { break; }
     jpruner->incStepV();
+    if (jpruner->is_terminatedV()) { next_id = warthog::INF; break; }
 
     jpruner->rmapflag = false;
     __jump_west(next_id, goal_id, jp_id2, cost2, map_);
     if(jp_id2 != warthog::INF && jpruner->is_forced()) { break; }
     jpruner->incStepH();
+    if (jpruner->is_terminatedH()) { next_id = warthog::INF; break; }
 
     // couldn't move in either straight dir; node_id is an obstacle
     if ( (cost1 == 0 && jpruner->is_deadendV()) || (cost2 == 0 && jpruner->is_deadendH())) {
@@ -514,7 +518,7 @@ JPL::jump_southeast(uint32_t node_id,
 
     jpruner->curid = next_id;
     jpruner->rmapflag = false;
-    if (gValPruned(next_id)) break;
+    if (gprune && jpruner->gValPruned(1, 0)) break;
 
     // recurse straight before stepping again diagonally;
     // (ensures we do not miss any optimal turning points)
@@ -524,11 +528,13 @@ JPL::jump_southeast(uint32_t node_id,
     __jump_south(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     if(jp_id1 != warthog::INF && jpruner->is_forced()) { break; }
     jpruner->incStepV();
+    if (jpruner->is_terminatedV()) { next_id = warthog::INF; break; }
 
     jpruner->rmapflag = false;
     __jump_east(next_id, goal_id, jp_id2, cost2, map_);
     if(jp_id2 != warthog::INF && jpruner->is_forced()) { break; }
     jpruner->incStepH();
+    if (jpruner->is_terminatedH()) { next_id = warthog::INF; break; }
 
     // couldn't move in either straight dir; node_id is an obstacle
     if ( (cost1 == 0 && jpruner->is_deadendV()) || (cost2 == 0 && jpruner->is_deadendH())) {
@@ -573,7 +579,7 @@ JPL::jump_southwest(uint32_t node_id,
 
     jpruner->curid = next_id;
     jpruner->rmapflag = false;
-    if (gValPruned(next_id)) break;
+    // if (gprune && jpruner->gValPruned(1, 0)) break;
     // recurse straight before stepping again diagonally;
     // (ensures we do not miss any optimal turning points)
     uint32_t jp_id1, jp_id2;
@@ -582,11 +588,13 @@ JPL::jump_southwest(uint32_t node_id,
     __jump_south(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     if(jp_id1 != warthog::INF && jpruner->is_forced()) { break; }
     jpruner->incStepV();
+    if (jpruner->is_terminatedV()) { next_id = warthog::INF; break; }
 
     jpruner->rmapflag = false;
     __jump_west(next_id, goal_id, jp_id2, cost2, map_);
     if(jp_id2 != warthog::INF && jpruner->is_forced()) { break; }
     jpruner->incStepH();
+    if (jpruner->is_terminatedH()) { next_id = warthog::INF; break; }
 
     // couldn't move in either straight dir; node_id is an obstacle
     if ( (cost1 == 0 && jpruner->is_deadendV()) || (cost2 == 0 && jpruner->is_deadendH())) {

@@ -28,6 +28,7 @@ class online_jps_pruner {
       forced,     // ended at a forced neighbour
       deadend,    // ended at a deadend
       pruned,     // ended by pruning strategy
+      terminated, // no longer jump in current direction
       reached     // ended at target
     } etype;
     EndType etypeV, etypeH;
@@ -86,17 +87,15 @@ class online_jps_pruner {
       inline void incStep(const EndType& etype) {
         stepCnt++;
         if (stepCnt >= d) {
-          d = warthog::INF;
           gVal = warthog::INF;
-          stepCnt = 0;
         }
         switch (etype) {
           case pruned: break;
           case reached:
             gVal = d = dm = 0; break;
           case deadend:
-            gVal = d = dm = warthog::INF; break;
           case forced:
+          case terminated:
             gVal = d = dm = warthog::INF; break;
         }
       }
@@ -122,7 +121,7 @@ class online_jps_pruner {
       }
       else if (vis[node_id].second + d < curg) {
         // there is a better path to current position
-        set_deadend();
+        set_terminated();
       }
       else {
         // there is a better path to scanned node, then update constraint
@@ -180,6 +179,7 @@ class online_jps_pruner {
     inline void set_pruned() { this->etype = pruned; }
     inline void set_deadend() { this->etype = deadend; }
     inline void set_reached() { this->etype = reached; }
+    inline void set_terminated() {this->etype = terminated; }
 
     inline bool is_forced() { return this->etype == forced; }
     inline bool is_forcedH() { return this->etypeH == forced; }
@@ -197,21 +197,23 @@ class online_jps_pruner {
     inline bool is_reachedH() { return this->etypeH == reached; }
     inline bool is_reachedV() { return this->etypeV == reached; }
 
-    inline bool gValPruned(const uint32_t& jumpnode_id, const warthog::cost_t& c) {
+    inline bool is_terminated() { return this->etype == terminated; }
+    inline bool is_terminatedH() { return this->etypeH == terminated; }
+    inline bool is_terminatedV() { return this->etypeV == terminated; }
 
-      if (vis[jumpnode_id].first != search_id || vis[jumpnode_id].second == warthog::INF) {
-        vis[jumpnode_id] = {search_id, c};
-        return false;
+    inline bool gValPruned(int direct, const uint32_t& dist) {
+      uint32_t jumpnode_id = curid;
+      if (rmapflag) jumpnode_id -= direct * (int)(dist * map->width());
+      else jumpnode_id += direct * (int)dist;
+
+      warthog::cost_t c = curg + dist * warthog::ONE;
+      if (vis[jumpnode_id].first == search_id && c > vis[jumpnode_id].second) {
+        this->set_deadend();
+        return true;
       }
       else {
-        if (c > vis[jumpnode_id].second) {
-          this->set_pruned();
-          return true;
-        }
-        else {
-          vis[jumpnode_id] = {search_id, c};
-          return false;
-        }
+        vis[jumpnode_id] = {search_id, c};
+        return false;
       }
     }
 
@@ -221,7 +223,7 @@ class online_jps_pruner {
 
       uint32_t d2 = c.d - c.dm;
       if (curg > c.gVal + c.d * warthog::ONE) {
-        set_deadend();
+        set_terminated();
         return true;
       }
       if (c.stepCnt + jumpdist >= c.d) {
@@ -253,10 +255,9 @@ class online_jps_pruner {
     inline void startExpand(problem_instance* instance, search_node* cur) {
       this->set_forced();
       this->search_id = instance->get_searchid();
-      this->rmapflag = false;
       this->cur = cur;
       for (int i=0; i<4; i++) {
-        this->constraints[i] = {warthog::INF, warthog::INF, warthog::INF, 0};
+        this->constraints[i].gVal = warthog::INF;
       }
     }
 };

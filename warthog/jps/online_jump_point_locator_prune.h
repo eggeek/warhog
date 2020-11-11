@@ -124,15 +124,6 @@ class online_jump_point_locator_prune
     warthog::gridmap* map_;
     warthog::gridmap* rmap_;
 
-    inline bool
-    gValPruned(uint32_t jumpnode_id) {
-      if (!gprune) return false;
-      if (jpruner->rmapflag) {
-        jumpnode_id = rmap_id_to_map_id(jumpnode_id);
-      }
-      return jpruner->gValPruned(jumpnode_id, jpruner->jumpdist * warthog::ONE + jpruner->curg);
-    }
-
     inline uint32_t
     gVal(uint32_t jumpnode_id) {
       if (jpruner->rmapflag) {
