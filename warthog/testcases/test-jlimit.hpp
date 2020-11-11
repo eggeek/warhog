@@ -61,8 +61,6 @@ void run(w::gridmap& map, vector<node>& s, vector<node>& t, bool verbose=false) 
       time0 += astar0.get_search_time();
       tot0 += jps0.get_locator()->jpruner->scan_cnt;
 
-      int e0 = astar0.get_nodes_expanded();
-
       jps1.get_locator()->jpruner->scan_cnt = 0;
 
       double len2 = astar1.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
@@ -72,16 +70,13 @@ void run(w::gridmap& map, vector<node>& s, vector<node>& t, bool verbose=false) 
       time1 += astar1.get_search_time();
       tot1 += jps1.get_locator()->jpruner->scan_cnt;
 
-      int e1 = astar1.get_nodes_expanded();
-
-      if (fabs(len - len2) > eps || e0 > e1) {
+      if (fabs(len - len2) > eps) {
         cerr << i << "\t" << map.filename() << "\t" << map.header_height()
              << "\t" << map.header_width() << "\t" << s[i].x << "\t" << s[i].y
              << "\t" << t[i].x << "\t" << t[i].y << "\t" << len2 << endl;
         cerr << "len: " << len << ", len2: " << len2 << endl;
       }
 
-      REQUIRE(e0 <= e1);
       REQUIRE(fabs(len - len2) < eps);
     }
     cout << "---------------------------" << endl;
@@ -120,9 +115,12 @@ TEST_CASE("jlimit-scen") {
 
 TEST_CASE("jlimit-random") {
   vector<string> queries = {
-    "./testcases/random-256.query",
-    "./testcases/random-512.query",
-    "./testcases/random-1024.query",
+    "./testcases/diag-random-256.query",
+    "./testcases/diag-random-512.query",
+    "./testcases/diag-random-1024.query",
+    "./testcases/square-random-256.query",
+    "./testcases/square-random-512.query",
+    "./testcases/square-random-1024.query",
   };
   vector<node> s, t;
   string mpath;
@@ -132,6 +130,7 @@ TEST_CASE("jlimit-random") {
     file >> mpath >> num;
     w::gridmap map(mpath.c_str());
     s.resize(num), t.resize(num);
+    cerr << "\n{testing: " << qpath << endl;
     for (int i=0; i<num; i++) {
       int sx, sy, tx, ty;
       file >> sx >> sy >> tx >> ty;
@@ -139,6 +138,7 @@ TEST_CASE("jlimit-random") {
       t[i] = node{tx, ty};
     }
     run(map, s, t);
+    cerr << "}" << endl;
   }
 }
 
@@ -154,6 +154,22 @@ TEST_CASE("jlimit-maxscan") {
     int l = map.header_height();
     vector<node> s = {{1, l / 2}};
     vector<node> t = {{l-2, l / 2}};
+    run(map, s, t);
+  }
+}
+
+TEST_CASE("jlimit-empty") {
+  vector<string> mpaths = {
+    "./testcases/maps/empty-128.map",
+    "./testcases/maps/empty-256.map",
+    "./testcases/maps/empty-512.map",
+    "./testcases/maps/empty-1024.map"
+  };
+  for (const auto& mpath: mpaths) {
+    w::gridmap map(mpath.c_str());
+    int l = map.header_height();
+    vector<node> s = {{l / 2, l / 2}};
+    vector<node> t = {{l-1, l / 2}};
     run(map, s, t);
   }
 }
