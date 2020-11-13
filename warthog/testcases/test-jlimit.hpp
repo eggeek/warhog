@@ -7,7 +7,9 @@
 #include "experiment.h"
 #include "gridmap.h"
 #include "jps_expansion_policy_prune.h"
+#include "jps_expansion_policy.h"
 #include "online_jump_point_locator_prune.h"
+#include "online_jump_point_locator.h"
 #include "flexible_astar.h"
 #include "octile_heuristic.h"
 #include "scenario_manager.h"
@@ -36,20 +38,19 @@ void run(w::gridmap& map, vector<node>& s, vector<node>& t, bool verbose=false) 
     jps0.get_locator()->gprune = false;
     astar0.set_verbose(verbose);
 
-    w::jps_expansion_policy_prune jps1(&map);
+    w::jps_expansion_policy jps1(&map);
     w::octile_heuristic heuristic1(map.width(), map.height());
     w::flexible_astar<
       w::octile_heuristic,
-      w::jps_expansion_policy_prune> astar1(&heuristic1, &jps1);
+      w::jps_expansion_policy> astar1(&heuristic1, &jps1);
 
-    jps1.get_locator()->jprune = false;
-    jps1.get_locator()->gprune = false;
     astar1.set_verbose(verbose);
 
     tot0 = tot1 = exp0 = exp1 = gen0 = gen1 = touch0 = touch1 = 0;
     time0 = time1 = 0;
     for (int i=0; i<(int)s.size(); i++) {
       jps0.get_locator()->jpruner->scan_cnt = 0;
+      jps1.get_locator()->scan_cnt = 0;
 
       int sid = s[i].y * map.header_width() + s[i].x;
       int tid = t[i].y * map.header_width() + t[i].x;
@@ -61,14 +62,12 @@ void run(w::gridmap& map, vector<node>& s, vector<node>& t, bool verbose=false) 
       time0 += astar0.get_search_time();
       tot0 += jps0.get_locator()->jpruner->scan_cnt;
 
-      jps1.get_locator()->jpruner->scan_cnt = 0;
-
       double len2 = astar1.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
       exp1 += astar1.get_nodes_expanded();
       gen1 += astar1.get_nodes_generated();
       touch1 += astar1.get_nodes_touched();
       time1 += astar1.get_search_time();
-      tot1 += jps1.get_locator()->jpruner->scan_cnt;
+      tot1 += jps1.get_locator()->scan_cnt;
 
       if (fabs(len - len2) > eps) {
         cerr << i << "\t" << map.filename() << "\t" << map.header_height()

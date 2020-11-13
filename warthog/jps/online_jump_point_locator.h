@@ -25,6 +25,7 @@ class online_jump_point_locator
 	public: 
 		online_jump_point_locator(warthog::gridmap* map);
 		~online_jump_point_locator();
+    uint32_t scan_cnt;
 
 		void
 		jump(warthog::jps::direction d, uint32_t node_id, uint32_t goalid, 

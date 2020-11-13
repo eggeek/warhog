@@ -175,6 +175,7 @@ warthog::online_jump_point_locator::__jump_east(uint32_t node_id,
 		// Such a tile, followed by a non-obstacle tile, would yield a forced 
 		// neighbour that we don't want to miss.
 		jumpnode_id += 31;
+    this->scan_cnt++;
 	}
 
 	uint32_t num_steps = jumpnode_id - node_id;
@@ -240,7 +241,7 @@ warthog::online_jump_point_locator::__jump_west(uint32_t node_id,
 		// jump to the end of cache. jumping +32 involves checking
 		// for forced neis between adjacent sets of contiguous tiles
 		jumpnode_id -= 31;
-	
+    this->scan_cnt++;
 	}
 
 	uint32_t num_steps = node_id - jumpnode_id;
@@ -303,6 +304,7 @@ warthog::online_jump_point_locator::jump_northeast(uint32_t node_id,
 		if(!(cost1 && cost2)) { next_id = warthog::INF; break; }
 
 	}
+  this->scan_cnt += num_steps;
 	jumpnode_id = next_id;
 	jumpcost = num_steps*warthog::ROOT_TWO;
 }
@@ -345,6 +347,7 @@ warthog::online_jump_point_locator::jump_northwest(uint32_t node_id,
 		// couldn't move in either straight dir; node_id is an obstacle
 		if(!(cost1 && cost2)) { next_id = warthog::INF; break; }
 	}
+  this->scan_cnt += num_steps;
 	jumpnode_id = next_id;
 	jumpcost = num_steps*warthog::ROOT_TWO;
 }
@@ -388,6 +391,7 @@ warthog::online_jump_point_locator::jump_southeast(uint32_t node_id,
 		// couldn't move in either straight dir; node_id is an obstacle
 		if(!(cost1 && cost2)) { next_id = warthog::INF; break; }
 	}
+  this->scan_cnt += num_steps;
 	jumpnode_id = next_id;
 	jumpcost = num_steps*warthog::ROOT_TWO;
 }
@@ -430,6 +434,7 @@ warthog::online_jump_point_locator::jump_southwest(uint32_t node_id,
 		// couldn't move in either straight dir; node_id is an obstacle
 		if(!(cost1 && cost2)) { next_id = warthog::INF; break; }
 	}
+  this->scan_cnt += num_steps;
 	jumpnode_id = next_id;
 	jumpcost = num_steps*warthog::ROOT_TWO;
 }
