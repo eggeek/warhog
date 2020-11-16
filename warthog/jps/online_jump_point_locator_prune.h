@@ -59,35 +59,35 @@ class online_jump_point_locator_prune
     void
     jump_southeast(uint32_t node_id, uint32_t goal_id, 
         uint32_t& jumpnode_id, warthog::cost_t& jumpcost);
-    uint32_t
+    void
     jump_north(uint32_t node_id, uint32_t goal_id, 
         uint32_t& jumpnode_id, warthog::cost_t& jumpcost);
-    uint32_t
+    void
     jump_south(uint32_t node_id, uint32_t goal_id, 
         uint32_t& jumpnode_id, warthog::cost_t& jumpcost);
-    uint32_t
+    void
     jump_east(uint32_t node_id, uint32_t goal_id, 
         uint32_t& jumpnode_id, warthog::cost_t& jumpcost);
-    uint32_t
+    void
     jump_west(uint32_t node_id, uint32_t goal_id, 
         uint32_t& jumpnode_id, warthog::cost_t& jumpcost);
 
     // these versions can be passed a map parameter to
     // use when jumping. they allow switching between
     // map_ and rmap_ (a rotated counterpart).
-    uint32_t  
+    void 
     __jump_east(uint32_t node_id, uint32_t goal_id, 
         uint32_t& jumpnode_id, warthog::cost_t& jumpcost, 
         warthog::gridmap* mymap);
-    uint32_t  
+    void 
     __jump_west(uint32_t node_id, uint32_t goal_id, 
         uint32_t& jumpnode_id, warthog::cost_t& jumpcost, 
         warthog::gridmap* mymap);
-    uint32_t  
+    void
     __jump_north(uint32_t node_id, uint32_t goal_id, 
         uint32_t& jumpnode_id, warthog::cost_t& jumpcost,
         warthog::gridmap* mymap);
-    uint32_t
+    void
     __jump_south(uint32_t node_id, uint32_t goal_id, 
         uint32_t& jumpnode_id, warthog::cost_t& jumpcost, 
         warthog::gridmap* mymap);
@@ -123,6 +123,7 @@ class online_jump_point_locator_prune
 
     warthog::gridmap* map_;
     warthog::gridmap* rmap_;
+		uint32_t jumplimit_;
 
     inline uint32_t
     gVal(uint32_t jumpnode_id) {

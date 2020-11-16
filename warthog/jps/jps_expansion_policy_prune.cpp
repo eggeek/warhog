@@ -7,9 +7,8 @@ warthog::jps_expansion_policy_prune::jps_expansion_policy_prune(warthog::gridmap
 	map_ = map;
 	nodepool_ = new warthog::blocklist(map->height(), map->width());
 	jpl_ = new warthog::online_jump_point_locator_prune(map);
-  jpruner.init(map_->height() * map_->width());
+  jpruner.init(map_);
   jpl_->jpruner = &jpruner;
-  jpl_->jpruner->map = map;
 	reset();
 }
 

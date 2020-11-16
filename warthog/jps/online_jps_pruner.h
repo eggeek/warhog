@@ -18,6 +18,8 @@ class online_jps_pruner {
     search_node* cur;
     gridmap* map;
     vector<pic> vis;
+    vector<uint32_t> jlimit_arr;
+    const uint32_t jlimit_mask = 1 << 5;
 
     warthog::cost_t curg;
     uint32_t curid;
@@ -81,7 +83,8 @@ class online_jps_pruner {
       uint32_t node_id,       // node id of "b"
                d,             // distance from "c" to "b"
                dm,            // ceiled distance from "c" to "m"
-               stepCnt;       // num of diagonal moves made from creating "b"
+               stepCnt,       // num of diagonal moves made from creating "b"
+               jlimit;        // num of steps can jump
       warthog::cost_t gVal;
 
       inline void incStep(const EndType& etype) {
@@ -99,13 +102,23 @@ class online_jps_pruner {
             gVal = d = dm = warthog::INF; break;
         }
       }
+
+      inline uint32_t calc_jlimit(const uint32_t& ga) {
+        if (gVal == warthog::INF) { jlimit = warthog::INF; }
+        else if (gVal + d * warthog::ONE < ga) { jlimit = 0; }
+        else {
+          jlimit = (gVal + d * warthog::ONE - ga - warthog::ROOT_TWO * stepCnt) / 2;
+          if (jlimit > d) jlimit = warthog::INF;
+        }
+        return jlimit;
+      }
     };
     Constraint constraints[4];
-    Constraint *constraintH, *constraintV, *curConstraint;
+    Constraint constraintH, constraintV, *curConstraint;
 
     inline void setCurConstraint() {
-      if (rmapflag) curConstraint = constraintV;
-      else curConstraint = constraintH;
+      if (rmapflag) curConstraint = &constraintV;
+      else curConstraint = &constraintH;
     }
 
     inline void updateConstraint(int direct, uint32_t dist) {
@@ -117,31 +130,26 @@ class online_jps_pruner {
       if (vis[node_id].first != search_id || vis[node_id].second >= d + curg) {
         // current path is better
         vis[node_id] = {search_id, d + curg};
-        set_forced();
       }
-      else if (vis[node_id].second + d < curg) {
-        // there is a better path to current position
-        set_terminated();
-      }
-      else {
+      else
+      {
         // there is a better path to scanned node, then update constraint
         curConstraint->node_id = node_id;
         curConstraint->gVal = vis[node_id].second;
         curConstraint->d = dist;
         curConstraint->dm = (curConstraint->gVal - curg + dist + 1) >> 1; // ceiling
         curConstraint->stepCnt = 0;
-        set_pruned();
       }
     }
 
     inline void incStepV() {
       etypeV = this->etype;
-      constraintV->incStep(etype);
+      constraintV.incStep(etype);
     }
 
     inline void incStepH() {
       etypeH = this->etype;
-      constraintH->incStep(etype);
+      constraintH.incStep(etype);
     }
 
     inline uint32_t corner_pos(uint32_t (&neis)[3]) {
@@ -164,15 +172,39 @@ class online_jps_pruner {
       else return warthog::INF;
     }
 
-    inline void set_north_constraint() { constraintV = &(constraints[0]); }
-    inline void set_south_constraint() { constraintV = &constraints[1]; }
-    inline void set_east_constraint() { constraintH = &constraints[2]; }
-    inline void set_west_constraint() { constraintH = &constraints[3]; }
+    inline void set_jlimt_array(const uint32_t& limit) {
+      if (limit != warthog::INF)
+        jlimit_arr[limit >> 5] = 1 << (limit & this->jlimit_mask);
+    }
 
-    inline void init(uint32_t tot) {
-      vis.resize(tot);
+    inline void unset_jlimit_array(const uint32_t& limit) {
+      if (limit != warthog::INF)
+        jlimit_arr[limit >> 5] = 0;
+    }
+
+    inline void set_jlimt_array_upper(const uint32_t& limit) {
+      if (limit != warthog::INF)
+        jlimit_arr[limit >> 5] = 1 << (31 - (limit & this->jlimit_mask));
+    }
+
+    inline void set_north_constraint() { constraintV = constraints[0]; }
+    inline void set_south_constraint() { constraintV = constraints[1]; }
+    inline void set_east_constraint() { constraintH = constraints[2]; }
+    inline void set_west_constraint() { constraintH = constraints[3]; }
+
+    inline void save_north_constraint() { constraints[0] = *curConstraint; }
+    inline void save_south_constraint() { constraints[1] = *curConstraint; }
+    inline void save_east_constraint() { constraints[2] = *curConstraint; }
+    inline void save_west_constraint() { constraints[3] = *curConstraint; }
+    
+
+    inline void init(gridmap* map) {
+      this->map = map;
+      vis.resize(map->width() * map->height());
       fill(vis.begin(), vis.end(), pic{warthog::INF, warthog::INF});
       scan_cnt = 0;
+      jlimit_arr.resize((max(map->width(), map->height())>>5) + 1);
+      fill(jlimit_arr.begin(), jlimit_arr.end(), 0);
     }
 
     inline void set_forced() { this->etype = forced; }
