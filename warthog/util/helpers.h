@@ -9,6 +9,8 @@
 // @created: 21/08/2012
 //
 
+#include <cstddef>
+#include <cstdint>
 namespace warthog
 {
 namespace helpers
@@ -27,6 +29,15 @@ index_to_xy(unsigned int id, unsigned int mapwidth,
 //	{
 //		y++; 
 //	}
+}
+
+
+inline uint32_t LOWB(const uint32_t& mask) { return mask & (-mask); };
+
+template<typename T> size_t sgn(const T& v1, const T& v2) {
+  if (v1 < v2) return -1;
+  else if (v1 == v2) return 0;
+  else return 1;
 }
 
 }

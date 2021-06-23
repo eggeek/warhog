@@ -1,20 +1,9 @@
 #pragma once
 // jps_expansion_policy_prune.h
 //
-// This expansion policy reduces the branching factor
-// of a node n during search by ignoring any neighbours which
-// could be reached by an equivalent (or shorter) path that visits
-// the parent of n but not n itself.
-//
-// An extension of this idea is to generate jump nodes located in the
-// same direction as the remaining neighbours. 
-//
-// Theoretical details:
-// [Harabor D. and Grastien A., 2011, Online Node Pruning for Pathfinding
-// On Grid Maps, AAAI] 
-//
-// @author: dharabor
-// @created: 06/01/2010
+// based on jps_expansion_policy.h
+// @author: shizhe
+// @created: 09/06/2021
 
 #include "blocklist.h"
 #include "gridmap.h"
@@ -22,9 +11,10 @@
 #include "jps.h"
 #include "online_jump_point_locator_prune.h"
 #include "problem_instance.h"
-#include "online_jps_pruner.h"
 #include "search_node.h"
+#include "mapper.h"
 
+#include "online_jps_pruner.h"
 #include "stdint.h"
 
 namespace warthog
@@ -35,7 +25,6 @@ class jps_expansion_policy_prune
 	public:
 		jps_expansion_policy_prune(warthog::gridmap* map);
 		~jps_expansion_policy_prune();
-    online_jps_pruner jpruner;
 
 		// create a warthog::search_node object from a state description
 		// (in this case, an id)
@@ -107,14 +96,18 @@ class jps_expansion_policy_prune
       return this->jpl_;
     }
 
+  Mapper* get_mapper() { return mapper; }
+
 	private:
 		warthog::gridmap* map_;
 		warthog::blocklist* nodepool_;
+    warthog::Mapper* mapper;
 		warthog::online_jump_point_locator_prune* jpl_;
 		uint32_t which_;
 		uint32_t num_neighbours_;
 		warthog::search_node* neighbours_[9];
 		warthog::cost_t costs_[9];
+    online_jps_pruner jpruner;
 
 		// computes the direction of travel; from a node n1
 		// to a node n2.

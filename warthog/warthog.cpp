@@ -34,8 +34,6 @@ int verbose = 0;
 int print_help = 0;
 // treat the map as a weighted-cost grid
 int wgm = 0;
-int gprune = 0;
-int jlimit = 0;
 
 void
 help()
@@ -270,18 +268,14 @@ run_jps_prune(warthog::scenario_manager& scenmgr)
 		warthog::octile_heuristic,
 	   	warthog::jps_expansion_policy_prune> astar(&heuristic, &expander);
 	astar.set_verbose(verbose);
-  expander.get_locator()->gprune = gprune;
-  expander.get_locator()->jprune = jlimit;
-  expander.get_locator()->set_verbose(verbose);
 
-  std::cerr << "gprune: " << gprune << " , jlimit: " << jlimit << std::endl;
 	std::cout << "id\talg\texpd\tgend\ttouched\ttime\tcost\tscnt\tsfile\n";
   long long tot = 0;
   for(unsigned int i=0; i < scenmgr.num_experiments(); i++)
 	{
 		warthog::experiment* exp = scenmgr.get_experiment(i);
 
-    expander.get_locator()->jpruner->scan_cnt = 0;
+    expander.get_locator()->scan_cnt = 0;
 
 		int startid = exp->starty() * exp->mapwidth() + exp->startx();
 		int goalid = exp->goaly() * exp->mapwidth() + exp->goalx();
@@ -299,10 +293,10 @@ run_jps_prune(warthog::scenario_manager& scenmgr)
 		<< astar.get_nodes_touched() << "\t"
 		<< astar.get_search_time()  << "\t"
 		<< len << "\t" 
-    << expander.get_locator()->jpruner->scan_cnt << "\t"
+    << expander.get_locator()->scan_cnt << "\t"
 		<< scenmgr.last_file_loaded() << std::endl;
 
-    tot += expander.get_locator()->jpruner->scan_cnt;
+    tot += expander.get_locator()->scan_cnt;
 		check_optimality(len, exp);
 	}
   std::cerr << "done. total memory: "<< astar.mem() + scenmgr.mem() << ", tot scan: " << tot << "\n";
@@ -436,8 +430,6 @@ main(int argc, char** argv)
 		{"checkopt",  no_argument, &checkopt, 1},
 		{"verbose",  no_argument, &verbose, 1},
 		{"wgm",  no_argument, &wgm, 1},
-    {"gprune", no_argument, &gprune, 1},
-    {"jlimit", no_argument, &jlimit, 1},
 	};
 
 	warthog::util::cfg cfg;
