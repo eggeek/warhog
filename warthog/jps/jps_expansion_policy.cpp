@@ -20,6 +20,7 @@ warthog::jps_expansion_policy::expand(
 {
 	reset();
 
+  uint32_t searchid = problem->get_searchid();
 	// compute the direction of travel used to reach the current node.
 	warthog::jps::direction dir_c =
 	   	this->compute_direction(current->get_parent(), current);
@@ -44,7 +45,13 @@ warthog::jps_expansion_policy::expand(
 
 			if(succ_id != warthog::INF)
 			{
-				neighbours_[num_neighbours_] = nodepool_->generate(succ_id);
+
+		    warthog::search_node* mynode = nodepool_->generate(succ_id);
+        if (mynode->get_searchid() != searchid) {
+          mynode->reset(searchid);
+        }
+        mynode->set_pdir(d);
+				neighbours_[num_neighbours_] = mynode;
 				costs_[num_neighbours_] = jumpcost;
 				// move terminator character as we go
 				neighbours_[++num_neighbours_] = 0;

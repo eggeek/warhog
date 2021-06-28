@@ -30,43 +30,44 @@ inline void run(w::gridmap& map, vector<node>& s, vector<node>& t, bool verbose=
 
   long long tot0, tot1, exp0, exp1, gen0, gen1, touch0, touch1;
   double time0, time1;
-    w::jps_expansion_policy_prune jps0(&map);
-    w::jps_heuristic jpsh(jps0.get_mapper());
-    w::neo_astar<w::jps_expansion_policy_prune> neoAstar(&jpsh, &jps0);
+    w::jps_expansion_policy jps(&map);
+    w::jps_expansion_policy_prune jps_prune(&map);
+    w::octile_heuristic heuristic1(map.width(), map.height());
+    // w::jps_heuristic jpsh(jps_prune.get_mapper());
+
+    w::flexible_astar<w::octile_heuristic, w::jps_expansion_policy_prune> neoAstar(&heuristic1, &jps_prune);
 
     neoAstar.set_verbose(verbose);
 
-    w::jps_expansion_policy jps1(&map);
-    w::octile_heuristic heuristic1(map.width(), map.height());
     w::flexible_astar<
       w::octile_heuristic,
-      w::jps_expansion_policy> astar1(&heuristic1, &jps1);
+      w::jps_expansion_policy> astar1(&heuristic1, &jps);
 
     astar1.set_verbose(verbose);
 
     tot0 = tot1 = exp0 = exp1 = gen0 = gen1 = touch0 = touch1 = 0;
     time0 = time1 = 0;
     for (int i=0; i<(int)s.size(); i++) {
-      jps0.get_locator()->scan_cnt = 0;
-      jps1.get_locator()->scan_cnt = 0;
+      jps.get_locator()->scan_cnt = 0;
+      jps_prune.get_locator()->scan_cnt = 0;
 
       int sid = s[i].y * map.header_width() + s[i].x;
       int tid = t[i].y * map.header_width() + t[i].x;
 
-      jpsh.set_target(map.to_padded_id(tid));
+      // jpsh.set_target(map.to_padded_id(tid));
       double len_prune = neoAstar.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
       exp0 += neoAstar.get_nodes_expanded();
       gen0 += neoAstar.get_nodes_generated();
       touch0 += neoAstar.get_nodes_touched();
       time0 += neoAstar.get_search_time();
-      tot0 += jps0.get_locator()->scan_cnt;
+      tot0 += jps_prune.get_locator()->scan_cnt;
 
       double len = astar1.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
       exp1 += astar1.get_nodes_expanded();
       gen1 += astar1.get_nodes_generated();
       touch1 += astar1.get_nodes_touched();
       time1 += astar1.get_search_time();
-      tot1 += jps1.get_locator()->scan_cnt;
+      tot1 += jps.get_locator()->scan_cnt;
 
       if (fabs(len_prune - len) > eps) {
         cerr << i << "\t" << map.filename() << "\t" << map.header_height()
@@ -195,46 +196,66 @@ TEST_CASE("jlimit-exp") {
 
   std::map< string, vector<tuple<node, node, double>> > cases = {
     {
+      "./maps/random10/random512-10-0.map",
+      {
+        {{368, 110}, {358, 131}, 25.142}
+      }
+    },
+    {
+      "./maps/random20/random512-20-0.map",
+      {
+        {{274, 382}, {39, 398}, 256.74}
+      }
+    },
+    {
+      "./maps/random40/random512-40-0.map",
+      {
+        {{505, 246}, {414, 115}, 1045.1}
+      }
+    },
+    {
       "./maps/starcraft/CatwalkAlley.map",
       {
         {{81, 343}, {20, 367}, 181.467}
       }
     },
-    // {
-    //   "./maps/starcraft/ArcticStation.map",
-    //   {
-    //     {{767, 600}, {385, 407}, 534}
-    //   }
-    // },
-    // {
-    //   "./testcases/maps/dao/den011d.map",
-    //   {
-    //     {{10, 28}, {164, 65}, 281.266}
-    //   }
-    // },
-    // {
-    //   "./testcases/maps/dao/arena.map",
-    //   {
-    //     {{1, 3}, {3, 1}, 3.41421},
-    //     {{1, 13}, {4, 12}, 3.41421},
-    //   }
-    // },
-    // {
-    //   "./testcases/maps/starcraft/GreenerPastures.map",
-    //   {
-    //     {{471, 292}, {526, 398}, 128.782},
-    //     {{65, 454}, {572, 175}, 627.834},
-    //     {{38, 489}, {572, 175}, 674.021},
-    //     {{756, 460}, {746, 235}, 231.627},
-    //     {{610, 163}, {375, 187}, 450.973},
-    //   }
-    // },
-    // {
-    //   "./testcases/maps/starcraft/GhostTown.map",
-    //   {
-    //     {{336, 186}, {1, 478}, 481.139}
-    //   }
-    // }
+    {
+      "./maps/starcraft/ArcticStation.map",
+      {
+        {{643, 92}, {493, 259}, 423.515},
+        {{767, 600}, {385, 407}, 534},
+      }
+    },
+    {
+      "./testcases/maps/dao/den011d.map",
+      {
+        {{102, 40}, {158, 51}, 198.296},
+        {{10, 28}, {164, 65}, 281.266}
+      }
+    },
+    {
+      "./testcases/maps/dao/arena.map",
+      {
+        {{1, 3}, {3, 1}, 3.41421},
+        {{1, 13}, {4, 12}, 3.41421},
+      }
+    },
+    {
+      "./testcases/maps/starcraft/GreenerPastures.map",
+      {
+        {{471, 292}, {526, 398}, 128.782},
+        {{65, 454}, {572, 175}, 627.834},
+        {{38, 489}, {572, 175}, 674.021},
+        {{756, 460}, {746, 235}, 231.627},
+        {{610, 163}, {375, 187}, 450.973},
+      }
+    },
+    {
+      "./testcases/maps/starcraft/GhostTown.map",
+      {
+        {{336, 186}, {1, 478}, 481.139}
+      }
+    }
   };
 
 
@@ -242,16 +263,22 @@ TEST_CASE("jlimit-exp") {
     const string& mpath = it.first;
     const auto& queries = it.second;
     w::gridmap map(mpath.c_str());
-    w::jps_expansion_policy_prune exp(&map);
 
-    w::jps_heuristic heuristic(exp.get_mapper());
-    w::neo_astar<w::jps_expansion_policy_prune> astar(&heuristic, &exp);
+    // w::jps_expansion_policy_prune exp(&map);
+    // w::jps_heuristic heuristic(exp.get_mapper());
+    // w::neo_astar<w::jps_expansion_policy_prune> astar(&heuristic, &exp);
 
-    // w::jps_expansion_policy_prune jps1(&map);
+    w::jps_expansion_policy_prune jps1(&map);
+    w::octile_heuristic heuristic1(map.width(), map.height());
+    w::flexible_astar<
+      w::octile_heuristic,
+      w::jps_expansion_policy_prune> astar(&heuristic1, &jps1);
+
+    // w::jps_expansion_policy jps1(&map);
     // w::octile_heuristic heuristic1(map.width(), map.height());
     // w::flexible_astar<
     //   w::octile_heuristic,
-    //   w::jps_expansion_policy_prune> astar(&heuristic1, &jps1);
+    //   w::jps_expansion_policy> astar(&heuristic1, &jps1);
 
     astar.set_verbose(true);
 
@@ -259,8 +286,6 @@ TEST_CASE("jlimit-exp") {
 
       node s = get<0>(q), t = get<1>(q);
       double ans = get<2>(q);
-
-      exp.get_locator()->scan_cnt = 0;
 
       int sid = s.y * map.header_width() + s.x;
       int gid = t.y * map.header_width() + t.x;

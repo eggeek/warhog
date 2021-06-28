@@ -47,6 +47,7 @@ class blocklist
 		// previous instance; otherwise allocate memory for a new object.
 		warthog::search_node*
 		generate(uint32_t node_id);
+    warthog::search_node* get(uint32_t node_id);
 
 		void
 		clear();

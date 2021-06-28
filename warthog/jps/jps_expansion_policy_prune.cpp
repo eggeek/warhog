@@ -3,11 +3,11 @@
 warthog::jps_expansion_policy_prune::jps_expansion_policy_prune(warthog::gridmap* map)
 {
 	map_ = map;
-	nodepool_ = new warthog::blocklist(map->height(), map->width());
-	jpl_ = new warthog::online_jump_point_locator_prune(map);
   mapper = new warthog::Mapper(map_);
   jpruner.init(map->height() * map->width());
   jpruner.mapper = mapper;
+	nodepool_ = new warthog::blocklist(map->height(), map->width());
+	jpl_ = new warthog::online_jump_point_locator_prune(map, &jpruner, nodepool_);
 	reset();
 }
 
@@ -23,10 +23,11 @@ warthog::jps_expansion_policy_prune::expand(
 		warthog::search_node* current, warthog::problem_instance* problem)
 {
 	reset();
+  jpruner.reset_constraints();
 
-  jpruner.pi = problem;
-  uint32_t id_mask = (1 << 24)-1;
   uint32_t searchid = problem->get_searchid();
+  jpruner.pi = problem;
+  jpruner.cur = current;
 	// compute the direction of travel used to reach the current node.
 	warthog::jps::direction dir_c =
 	   	this->compute_direction(current->get_parent(), current);
@@ -45,6 +46,7 @@ warthog::jps_expansion_policy_prune::expand(
 	// look for jump points in the direction of each natural 
 	// and forced neighbour
   // uint32_t succ_dirs = mapper->get_successors(dint, current_id);
+
   uint32_t succ_dirs = jps::compute_successors(dir_c, c_tiles);
 	uint32_t goal_id = problem->get_goal();
 	for(uint32_t i = 0; i < 8; i++)
@@ -58,7 +60,7 @@ warthog::jps_expansion_policy_prune::expand(
 
 			if(succ_id != warthog::INF)
 			{
-		    warthog::search_node* mynode = nodepool_->generate(succ_id & id_mask);
+		    warthog::search_node* mynode = nodepool_->generate(succ_id);
         if (mynode->get_searchid() != searchid) {
           mynode->reset(searchid);
         }
