@@ -96,7 +96,7 @@ check_optimality(double len, warthog::experiment* exp)
 void
 run_jpsplus(warthog::scenario_manager& scenmgr)
 {
-    warthog::gridmap map(scenmgr.get_experiment(0)->map().c_str());
+    warthog::gridmap map(scenmgr.mapfile.c_str());
 	warthog::jpsplus_expansion_policy expander(&map);
 	warthog::octile_heuristic heuristic(map.width(), map.height());
 
@@ -136,7 +136,7 @@ run_jpsplus(warthog::scenario_manager& scenmgr)
 void
 run_jps2plus(warthog::scenario_manager& scenmgr)
 {
-    warthog::gridmap map(scenmgr.get_experiment(0)->map().c_str());
+    warthog::gridmap map(scenmgr.mapfile.c_str());
 	warthog::jps2plus_expansion_policy expander(&map);
 	warthog::octile_heuristic heuristic(map.width(), map.height());
 
@@ -176,7 +176,7 @@ run_jps2plus(warthog::scenario_manager& scenmgr)
 void
 run_jps2(warthog::scenario_manager& scenmgr)
 {
-    warthog::gridmap map(scenmgr.get_experiment(0)->map().c_str());
+    warthog::gridmap map(scenmgr.mapfile.c_str());
 	warthog::jps2_expansion_policy expander(&map);
 	warthog::octile_heuristic heuristic(map.width(), map.height());
 
@@ -216,7 +216,7 @@ run_jps2(warthog::scenario_manager& scenmgr)
 void
 run_jps(warthog::scenario_manager& scenmgr)
 {
-    warthog::gridmap map(scenmgr.get_experiment(0)->map().c_str());
+    warthog::gridmap map(scenmgr.mapfile.c_str());
 	warthog::jps_expansion_policy expander(&map);
 	warthog::octile_heuristic heuristic(map.width(), map.height());
 
@@ -260,7 +260,7 @@ run_jps(warthog::scenario_manager& scenmgr)
 void
 run_jps_prune(warthog::scenario_manager& scenmgr)
 {
-    warthog::gridmap map(scenmgr.get_experiment(0)->map().c_str());
+    warthog::gridmap map(scenmgr.mapfile.c_str());
 	warthog::jps_expansion_policy_prune expander(&map);
 	warthog::octile_heuristic heuristic(map.width(), map.height());
 
@@ -305,7 +305,7 @@ run_jps_prune(warthog::scenario_manager& scenmgr)
 void
 run_astar(warthog::scenario_manager& scenmgr)
 {
-    warthog::gridmap map(scenmgr.get_experiment(0)->map().c_str());
+    warthog::gridmap map(scenmgr.mapfile.c_str());
 	warthog::gridmap_expansion_policy expander(&map);
 	warthog::octile_heuristic heuristic(map.width(), map.height());
 
@@ -424,6 +424,7 @@ main(int argc, char** argv)
 	warthog::util::param valid_args[] = 
 	{
 		{"scen",  required_argument, 0, 0},
+    {"map", required_argument},
 		{"alg",  required_argument, 0, 1},
 		{"gen", required_argument, 0, 3},
 		{"help", no_argument, &print_help, 1},
@@ -442,8 +443,9 @@ main(int argc, char** argv)
     }
 
 	std::string sfile = cfg.get_param_value("scen");
-	std::string alg = cfg.get_param_value("alg");
-	std::string gen = cfg.get_param_value("gen");
+	std::string alg   = cfg.get_param_value("alg");
+	std::string gen   = cfg.get_param_value("gen");
+  std::string mfile = cfg.get_param_value("map");
 
     // generate scenarios
 	if(gen != "")
@@ -463,8 +465,8 @@ main(int argc, char** argv)
 	}
 
 	warthog::scenario_manager scenmgr;
+  scenmgr.mapfile = mfile;
 	scenmgr.load_scenario(sfile.c_str());
-    std::cerr << "wgm: " << (wgm ? "true" : "false") << std::endl;
 
 	if(alg == "jps+")
 	{

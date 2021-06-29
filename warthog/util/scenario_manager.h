@@ -28,6 +28,7 @@ namespace warthog
 class scenario_manager 
 {
 	public:
+    std::string mapfile;
 		scenario_manager();
 		~scenario_manager();
 
