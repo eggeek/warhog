@@ -108,9 +108,10 @@ TEST_CASE("jlimit-scen") {
     {"./maps/starcraft/IceMountain.map", "./scenarios/movingai/starcraft/IceMountain.map.scen"},
     {"../maps/random10/random512-10-0.map", "../scenarios/movingai/random10/random512-10-0.map.scen"},
     {"../maps/random20/random512-20-0.map", "../scenarios/movingai/random20/random512-20-0.map.scen"},
-    {"../maps/random40/random512-40-0.map", "../scenarios/movingai/random40/random512-40-0.map.scen"},
     {"../maps/random30/random512-30-8.map", "../scenarios/movingai/random30/random512-30-8.map.scen"},
-    {"../maps/street/London_1_256.map", "../scenarios/movingai/street/London_1_256.map.scen"}
+    {"../maps/street/London_1_256.map", "../scenarios/movingai/street/London_1_256.map.scen"},
+    {"../maps/mazes/maze512-1-0.map", "../scenarios/movingai/mazes/maze512-1-0.map.scen"},
+    {"../maps/rooms/16room_000.map", "../scenarios/movingai/rooms/16room_000.map.scen"},
   };
   w::scenario_manager scenmgr;
   for (const auto& c: cases) {

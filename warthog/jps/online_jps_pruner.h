@@ -55,9 +55,11 @@ public:
   problem_instance* pi;
   Mapper* mapper;
   search_node* cur;
+  blocklist* nodepool;
   Constraint north,south,east,west,v,h;
   bool t_labelv, t_labelh;
   int t_mapid, t_rmapid;
+  uint32_t jump_step;
 
   vector<Record> rec;
 
@@ -144,25 +146,34 @@ public:
     }
   }
 
-  inline void after_scanv(gridmap* rmap, int cardinal_step) {
+  inline void after_scanv(gridmap* rmap, uint32_t nodeid) {
     if (v.l > 0) {
       rmap->set_label(t_rmapid, t_labelv);
-      if (cardinal_step < v.l) {
-        v.l = ILLEGAL_LEN;
-        v.s = nullptr;
+      if ((int)jump_step < v.l) {
+        search_node* s = nodepool->get(nodeid);
+        if (s == nullptr) {
+          v.s = nullptr;
+          v.l = ILLEGAL_LEN;
+        }
+        else {
+          init_constraint(v, s, jump_step*warthog::ONE);
+        }
       }
     }
   }
 
-  inline void after_scanh(gridmap* map, int cardinal_step) {
+  inline void after_scanh(gridmap* map, uint32_t nodeid) {
     if (h.l > 0) {
       map->set_label(t_mapid, t_labelh);
-      // there is a jump point or dead-end before pruned by constraint
-      // simply set the constraint be null
-      // TODO: use the jump point/dead-end to create new constraint
-      if (cardinal_step < h.l) {
-        h.l = ILLEGAL_LEN;
-        h.s = nullptr;
+      if ((int)jump_step < h.l) {
+        search_node* s = nodepool->get(nodeid);
+        if (s == nullptr) {
+          h.s = nullptr;
+          h.l = ILLEGAL_LEN;
+        }
+        else {
+          init_constraint(h, s, jump_step*warthog::ONE);
+        }
       }
     }
   }
