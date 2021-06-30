@@ -27,20 +27,21 @@ struct Constraint {
   int l; // 0<=l
 
   void setnull() { s = nullptr; }
-  void calc_limit(int step) {
+  void calc_limit() {
+    // TODO: l should also bounded by previous l
     if (s == nullptr) l = ILLEGAL_LEN;
     else {
-      if (dg + d < step * (int)warthog::ROOT_TWO) l = 0;
+      if (dg + d <= (int)warthog::ROOT_TWO) l = 0;
       else {
-        l = ((dg + d) - step * (int)warthog::ROOT_TWO) / 2;
-        if (l + (int)warthog::ONE * step > d) {
+        l = ((dg + d) - (int)warthog::ROOT_TWO) / 2;
+        if (l + (int)warthog::ONE >= d) {
           l = ILLEGAL_LEN;
           s = nullptr;
         }
         else {
-          if (l % warthog::ONE == 0) l = l / warthog::ONE;
-          else l = l / warthog::ONE + 1;
-          l += 1; // scan one more step to check obstacle
+          l = l / warthog::ONE + 1;
+          dg = dg - warthog::ROOT_TWO + (d - l*warthog::ONE);
+          d = l * warthog::ONE;
         }
       }
     }

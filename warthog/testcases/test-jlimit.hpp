@@ -110,6 +110,7 @@ TEST_CASE("jlimit-scen") {
     {"../maps/random20/random512-20-0.map", "../scenarios/movingai/random20/random512-20-0.map.scen"},
     {"../maps/random40/random512-40-0.map", "../scenarios/movingai/random40/random512-40-0.map.scen"},
     {"../maps/random30/random512-30-8.map", "../scenarios/movingai/random30/random512-30-8.map.scen"},
+    {"../maps/street/London_1_256.map", "../scenarios/movingai/street/London_1_256.map.scen"}
   };
   w::scenario_manager scenmgr;
   for (const auto& c: cases) {
@@ -196,9 +197,17 @@ TEST_CASE("jlimit-exp") {
 
   std::map< string, vector<tuple<node, node, double>> > cases = {
     {
+      "../maps/street/London_1_256.map",
+      {
+        {{113, 12}, {200, 176}, 212.521}
+      }
+    },
+    {
       "./maps/random10/random512-10-0.map",
       {
         {{368, 110}, {358, 131}, 25.142}
+
+
       }
     },
     {

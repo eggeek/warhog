@@ -325,8 +325,8 @@ lp::jump_northeast(uint32_t node_id,
 		next_id = next_id - mapw + 1;
 		rnext_id = rnext_id + rmapw + 1;
 
-    jp->v.calc_limit(num_steps);
-    jp->h.calc_limit(num_steps);
+    jp->v.calc_limit();
+    jp->h.calc_limit();
     if (jp->v.l == 0 || jp->h.l == 0) { 
       jumpnode_id = warthog::INF; jumpcost = 0; return;
     }
@@ -384,8 +384,8 @@ lp::jump_northwest(uint32_t node_id,
 		next_id = next_id - mapw - 1;
 		rnext_id = rnext_id - (rmapw - 1);
 
-    jp->v.calc_limit(num_steps);
-    jp->h.calc_limit(num_steps);
+    jp->v.calc_limit();
+    jp->h.calc_limit();
     if (jp->v.l == 0 || jp->h.l == 0) { 
       jumpnode_id = warthog::INF; jumpcost = 0; return;
     }
@@ -443,8 +443,8 @@ lp::jump_southeast(uint32_t node_id,
 		next_id = next_id + mapw + 1;
 		rnext_id = rnext_id + rmapw - 1;
 
-    jp->v.calc_limit(num_steps);
-    jp->h.calc_limit(num_steps);
+    jp->v.calc_limit();
+    jp->h.calc_limit();
     if (jp->v.l == 0 || jp->h.l == 0) { 
       jumpnode_id = warthog::INF; jumpcost = 0; return;
     }
@@ -501,8 +501,8 @@ lp::jump_southwest(uint32_t node_id,
 		next_id = next_id + mapw - 1;
 		rnext_id = rnext_id - (rmapw + 1);
 
-    jp->v.calc_limit(num_steps);
-    jp->h.calc_limit(num_steps);
+    jp->v.calc_limit();
+    jp->h.calc_limit();
     if (jp->v.l == 0 || jp->h.l == 0) { 
       jumpnode_id = warthog::INF; jumpcost = 0; return;
     }

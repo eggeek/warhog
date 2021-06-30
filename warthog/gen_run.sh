@@ -2,7 +2,6 @@
 domains=(
 dao
 bgmaps
-# wc3
 starcraft
 mazes
 random10
@@ -19,18 +18,17 @@ jps
 
 function run() {
   for domain in "${domains[@]}"; do
-    for alg in "${algs[@]}"; do
-      odir="./output/$alg/$domain"
-      mkdir -p $odir
-      mapnames=(`ls "./maps/${domain}"`)
-      for map in "${mapnames[@]}"; do
+    mapnames=(`ls "./maps/${domain}"`)
+    for map in "${mapnames[@]}"; do
+      for alg in "${algs[@]}"; do
+        odir="./output/$alg/$domain"
+        mkdir -p $odir
         spath="./scenarios/movingai/${domain}/${map}.scen"
         mpath="./maps/${domain}/${map}"
         opath="$odir/$map.csv"
         cmd="./bin/warthog --checkopt --scen $spath --map $mpath --alg $alg > $opath"
         echo $cmd
         eval $cmd
-        break
       done
     done
   done
