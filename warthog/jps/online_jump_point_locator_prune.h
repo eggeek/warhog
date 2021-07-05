@@ -111,7 +111,6 @@ class online_jump_point_locator_prune
 
 		warthog::gridmap* map_;
 		warthog::gridmap* rmap_;
-    uint32_t cardinal_step_;
 };
 
 }

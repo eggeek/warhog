@@ -8,7 +8,11 @@
 #include "gridmap.h"
 #include "jps_expansion_policy_prune.h"
 #include "jps_expansion_policy.h"
+#include "jps2_expansion_policy.h"
+#include "jps2_expansion_policy_prune.h"
+
 #include "online_jump_point_locator_prune.h"
+#include "online_jump_point_locator2_prune.h"
 #include "online_jump_point_locator.h"
 #include "flexible_astar.h"
 #include "octile_heuristic.h"
@@ -26,63 +30,98 @@ struct node {
 const double eps = 1e-2;
 namespace w=warthog;
 
+struct ExpData {
+  long long exp, gen, touch, scan;
+  double time;
+  void reset() {
+    exp = gen = touch = scan = 0;
+  }
+  template <typename H, typename E>
+  void update(w::flexible_astar<H, E>* alg, long long cnts) {
+    exp += alg->get_nodes_expanded();
+    gen += alg->get_nodes_generated();
+    touch += alg->get_nodes_touched();
+    time += alg->get_search_time();
+    scan += cnts;
+  }
+
+  string str() {
+    string res = "";
+    res += to_string(exp) + "\t" + 
+           to_string(gen) + "\t" + 
+           to_string(touch) + "\t" + 
+           to_string(int(time)) + "\t" + to_string(scan);
+    return res;
+  }
+};
+
+inline void print_query(int idx, string mapname, int sx, int sy, int tx, int ty, 
+double expect_len, double actual_len) {
+  cerr << idx << "\t" << mapname << "\t" << sx << "\t" << sy 
+       << "\t" << tx << "\t" << ty << "\t" << expect_len << endl;
+  cerr << "expected: " << expect_len << ", actual: " << actual_len << endl;
+}
+
 inline void run(w::gridmap& map, vector<node>& s, vector<node>& t, bool verbose=false) {
 
-  long long tot0, tot1, exp0, exp1, gen0, gen1, touch0, touch1;
-  double time0, time1;
-    w::jps_expansion_policy jps(&map);
-    w::jps_expansion_policy_prune jps_prune(&map);
-    w::octile_heuristic heuristic1(map.width(), map.height());
-    // w::jps_heuristic jpsh(jps_prune.get_mapper());
+  ExpData d_jps, d_jps2, d_jpsprune, d_jps2prune;
+  w::jps_expansion_policy jps(&map);
+  w::jps2_expansion_policy jps2(&map);
+  w::jps_expansion_policy_prune jps_prune(&map);
+  w::jps2_expansion_policy_prune jps2_prune(&map);
+  w::octile_heuristic heuristic1(map.width(), map.height());
+  // w::jps_heuristic jpsh(jps_prune.get_mapper());
 
-    w::flexible_astar<w::octile_heuristic, w::jps_expansion_policy_prune> neoAstar(&heuristic1, &jps_prune);
+  w::flexible_astar<w::octile_heuristic, w::jps_expansion_policy_prune> neoAstar(&heuristic1, &jps_prune);
+  w::flexible_astar<w::octile_heuristic, w::jps2_expansion_policy_prune> neoAstar2(&heuristic1, &jps2_prune);
+  w::flexible_astar<w::octile_heuristic,w::jps_expansion_policy> astar1(&heuristic1, &jps);
+  w::flexible_astar<w::octile_heuristic,w::jps2_expansion_policy> astar2(&heuristic1, &jps2);
 
-    neoAstar.set_verbose(verbose);
+  neoAstar.set_verbose(verbose);
+  neoAstar2.set_verbose(verbose);
+  astar1.set_verbose(verbose);
+  astar2.set_verbose(verbose);
 
-    w::flexible_astar<
-      w::octile_heuristic,
-      w::jps_expansion_policy> astar1(&heuristic1, &jps);
+  d_jps.reset(), d_jps2.reset(), d_jpsprune.reset(), d_jps2prune.reset();
+  for (int i=0; i<(int)s.size(); i++) {
+    jps.get_locator()->scan_cnt = 0;
+    jps2.get_locator()->scan_cnt = 0;
+    jps_prune.get_locator()->scan_cnt = 0;
+    jps2_prune.get_locator()->scan_cnt = 0;
 
-    astar1.set_verbose(verbose);
+    int sid = s[i].y * map.header_width() + s[i].x;
+    int tid = t[i].y * map.header_width() + t[i].x;
 
-    tot0 = tot1 = exp0 = exp1 = gen0 = gen1 = touch0 = touch1 = 0;
-    time0 = time1 = 0;
-    for (int i=0; i<(int)s.size(); i++) {
-      jps.get_locator()->scan_cnt = 0;
-      jps_prune.get_locator()->scan_cnt = 0;
+    // jpsh.set_target(map.to_padded_id(tid));
+    double len_prune = neoAstar.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
+    d_jpsprune.update(&neoAstar, jps_prune.get_locator()->scan_cnt);
 
-      int sid = s[i].y * map.header_width() + s[i].x;
-      int tid = t[i].y * map.header_width() + t[i].x;
+    double len_prune2 = neoAstar2.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
+    d_jps2prune.update(&neoAstar2, jps2_prune.get_locator()->scan_cnt);
 
-      // jpsh.set_target(map.to_padded_id(tid));
-      double len_prune = neoAstar.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
-      exp0 += neoAstar.get_nodes_expanded();
-      gen0 += neoAstar.get_nodes_generated();
-      touch0 += neoAstar.get_nodes_touched();
-      time0 += neoAstar.get_search_time();
-      tot0 += jps_prune.get_locator()->scan_cnt;
+    double len = astar1.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
+    d_jps.update(&astar1, jps.get_locator()->scan_cnt);
 
-      double len = astar1.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
-      exp1 += astar1.get_nodes_expanded();
-      gen1 += astar1.get_nodes_generated();
-      touch1 += astar1.get_nodes_touched();
-      time1 += astar1.get_search_time();
-      tot1 += jps.get_locator()->scan_cnt;
+    astar2.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
+    d_jps2.update(&astar2, jps2.get_locator()->scan_cnt);
 
-      if (fabs(len_prune - len) > eps) {
-        cerr << i << "\t" << map.filename() << "\t" << map.header_height()
-             << "\t" << map.header_width() << "\t" << s[i].x << "\t" << s[i].y
-             << "\t" << t[i].x << "\t" << t[i].y << "\t" << len << endl;
-        cerr << "len_prune: " << len_prune << ", len: " << len << endl;
-      }
-
-      REQUIRE(fabs(len_prune - len) < eps);
+    REQUIRE(fabs(len_prune - len) < eps);
+    if (fabs(len_prune - len) > eps) {
+      print_query(i, map.filename(), s[i].x, s[i].y, t[i].x, t[i].y, len, len_prune);
     }
-    cout << "--------------------------- " << map.filename() << endl;
-    cout << "algo\texp\tgen\ttouch\ttime\tscan\n" << endl;
-    cout << "jlimit\t" << exp0 << "\t" << gen0 << "\t" << touch0 << "\t" << time0 << "\t" << tot0 << endl;
-    cout << "normal\t" << exp1 << "\t" << gen1 << "\t" << touch1 << "\t" << time1 << "\t" << tot1 << endl;
 
+    REQUIRE(fabs(len_prune2 - len) < eps);
+    if (fabs(len_prune2 - len) > eps) {
+      print_query(i, map.filename(), s[i].x, s[i].y, t[i].x, t[i].y, len, len_prune2);
+    }
+
+  }
+  cout << "--------------------------- " << map.filename() << endl;
+  cout << "algo\texp\tgen\ttouch\ttime\tscan\n" << endl;
+  cout << "jlimit\t" << d_jpsprune.str() << endl;
+  cout << "normal\t" << d_jps.str() << endl;
+  cout << "jlimit2\t" << d_jps2prune.str() << endl;
+  cout << "normal2\t" << d_jps2.str() << endl;
 }
 
 inline void run_scen(w::gridmap& gridmap, w::scenario_manager& scenmgr) {
@@ -198,6 +237,12 @@ TEST_CASE("jlimit-exp") {
 
   std::map< string, vector<tuple<node, node, double>> > cases = {
     {
+      "../maps/starcraft/WatersEdge.map",
+      {
+        {{501, 97}, {138, 40}, 699.997}
+      }
+    },
+    {
       "../maps/street/London_1_256.map",
       {
         {{113, 12}, {200, 176}, 212.521}
@@ -291,9 +336,11 @@ TEST_CASE("jlimit-exp") {
     //   w::jps_expansion_policy> astar(&heuristic1, &jps1);
 
     astar.set_verbose(true);
+    long long scnt = 0;
 
     for (const auto& q: queries) {
 
+      jps1.get_locator()->scan_cnt = 0; 
       node s = get<0>(q), t = get<1>(q);
       double ans = get<2>(q);
 
@@ -301,7 +348,9 @@ TEST_CASE("jlimit-exp") {
       int gid = t.y * map.header_width() + t.x;
       double len = astar.get_length(map.to_padded_id(sid), map.to_padded_id(gid));
       REQUIRE(fabs(len - ans) <= eps);
+      scnt += jps1.get_locator()->scan_cnt;
     }
+    cerr << "scan: " << scnt << endl;
   }
 }
 

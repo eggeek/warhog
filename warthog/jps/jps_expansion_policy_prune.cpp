@@ -1,6 +1,8 @@
 #include "jps_expansion_policy_prune.h"
 
-warthog::jps_expansion_policy_prune::jps_expansion_policy_prune(warthog::gridmap* map)
+typedef warthog::jps_expansion_policy_prune jps_exp_prune;
+
+jps_exp_prune::jps_expansion_policy_prune(warthog::gridmap* map)
 {
 	map_ = map;
   mapper = new warthog::Mapper(map_);
@@ -11,7 +13,7 @@ warthog::jps_expansion_policy_prune::jps_expansion_policy_prune(warthog::gridmap
 	reset();
 }
 
-warthog::jps_expansion_policy_prune::~jps_expansion_policy_prune()
+jps_exp_prune::~jps_expansion_policy_prune()
 {
 	delete jpl_;
 	delete nodepool_;
@@ -19,7 +21,7 @@ warthog::jps_expansion_policy_prune::~jps_expansion_policy_prune()
 }
 
 void 
-warthog::jps_expansion_policy_prune::expand(
+jps_exp_prune::expand(
 		warthog::search_node* current, warthog::problem_instance* problem)
 {
 	reset();

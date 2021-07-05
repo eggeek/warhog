@@ -43,6 +43,7 @@ namespace warthog
   static const uint32_t INFID = std::numeric_limits<uint32_t>::max();
   static const uint32_t ALLMOVE = 0x7FFF;
   static const uint32_t INVALID = 1<<15;
+	static const uint32_t IDMASK  = (1 << 24)-1;
 
 	// hashing constants
 	static const uint32_t FNV32_offset_basis = 2166136261;

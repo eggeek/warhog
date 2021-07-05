@@ -1,34 +1,29 @@
-#ifndef WARTHOG_JPS2_EXPANSION_POLICY_H
-#define WARTHOG_JPS2_EXPANSION_POLICY_H
+#pragma once
+// jps2_expansion_policy_prune.h
 
-// jps2_expansion_policy.h
-//
-// An experimental variation of warthog::jps2_expansion_policy,
-// this version works with a modified version of online JPS
-// which skips intermediate jump points (i.e. those jps 
-// that do not have any forced neighbours)
-//
-// @author: dharabor
-// @created: 06/01/2010
+// @author: shizhe
+// @created: 30/06/2021
 
 #include "blocklist.h"
 #include "gridmap.h"
 #include "helpers.h"
 #include "jps.h"
-#include "online_jump_point_locator2.h"
+#include "online_jump_point_locator2_prune.h"
 #include "problem_instance.h"
 #include "search_node.h"
+#include "online_jps_pruner.h"
+#include "mapper.h"
 
 #include "stdint.h"
 
 namespace warthog
 {
 
-class jps2_expansion_policy 
+class jps2_expansion_policy_prune
 {
 	public:
-		jps2_expansion_policy(warthog::gridmap* map);
-		~jps2_expansion_policy();
+		jps2_expansion_policy_prune(warthog::gridmap* map);
+		~jps2_expansion_policy_prune();
 
 		// create a warthog::search_node object from a state description
 		// (in this case, an id)
@@ -96,19 +91,21 @@ class jps2_expansion_policy
 			return map_->width();
 		}
 
-    warthog::online_jump_point_locator2* get_locator() {
+    warthog::online_jump_point_locator2_prune* get_locator() {
       return this->jpl_;
     }
 
 	private:
 		warthog::gridmap* map_;
 		warthog::blocklist* nodepool_;
-		online_jump_point_locator2* jpl_;
+    warthog::Mapper* mapper;
+		online_jump_point_locator2_prune* jpl_;
 		uint32_t which_;
 		uint32_t num_neighbours_;
 		std::vector<warthog::search_node*> neighbours_;
 		std::vector<warthog::cost_t> costs_;
 		std::vector<uint32_t> jp_ids_;
+    online_jps_pruner jpruner;
 
 		inline void
 		reset()
@@ -123,6 +120,3 @@ class jps2_expansion_policy
 };
 
 }
-
-#endif
-

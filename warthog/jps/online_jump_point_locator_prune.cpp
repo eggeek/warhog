@@ -200,7 +200,7 @@ lp::__jump_east(uint32_t node_id,
 	}
 
 	uint32_t num_steps = jumpnode_id - node_id;
-  this->scan_cnt += (num_steps << 5) + 1;
+  this->scan_cnt += (num_steps >> 5);
 	uint32_t goal_dist = goal_id - node_id;
 	if(num_steps > goal_dist)
 	{
@@ -273,8 +273,8 @@ lp::__jump_west(uint32_t node_id,
 	}
 
 	uint32_t num_steps = node_id - jumpnode_id;
-  this->scan_cnt += (num_steps << 5) + 1;
 	uint32_t goal_dist = node_id - goal_id;
+  this->scan_cnt += (num_steps >> 5);
 	if(num_steps > goal_dist)
 	{
     jp->jump_step = goal_dist;

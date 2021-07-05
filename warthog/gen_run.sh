@@ -14,6 +14,8 @@ street
 algs=(
 jps-prune
 jps
+jps2
+jps2-prune
 )
 
 function run() {

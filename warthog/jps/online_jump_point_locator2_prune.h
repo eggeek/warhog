@@ -1,30 +1,23 @@
-#ifndef WARTHOG_ONLINE_JUMP_POINT_LOCATOR2_H
-#define WARTHOG_ONLINE_JUMP_POINT_LOCATOR2_H
-
-// online_jump_point_locator2.h
-//
-// A class wrapper around some code that finds, online, jump point
-// successors of an arbitrary nodes in a uniform-cost grid map.
-//
-// For theoretical details see:
-// [Harabor D. and Grastien A, 2011, 
-// Online Graph Pruning Pathfinding on Grid Maps, AAAI]
-//
-// @author: dharabor
-// @created: 03/09/2012
+#pragma once
+// online_jump_point_locator2_prune.h
+// @author: shizhe 
+// @created: 30/06/2021
 //
 
+#include "gridmap.h"
 #include "jps.h"
+#include "online_jps_pruner.h"
+#include "blocklist.h"
 
 //class warthog::gridmap;
 namespace warthog
 {
 
-class online_jump_point_locator2
+class online_jump_point_locator2_prune
 {
 	public: 
-		online_jump_point_locator2(warthog::gridmap* map);
-		~online_jump_point_locator2();
+		online_jump_point_locator2_prune(gridmap* map, online_jps_pruner* pruner, blocklist* np);
+		~online_jump_point_locator2_prune();
     uint32_t scan_cnt;
 
 		void
@@ -35,8 +28,10 @@ class online_jump_point_locator2
 		uint32_t 
 		mem()
 		{
-			return sizeof(this) + rmap_->mem();
+			return sizeof(*this) + rmap_->mem();
 		}
+    online_jps_pruner* jp;
+    blocklist* nodepool;
 
 	private:
 		void
@@ -166,6 +161,3 @@ class online_jump_point_locator2
 };
 
 }
-
-#endif
-
