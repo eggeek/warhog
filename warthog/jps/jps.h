@@ -36,6 +36,34 @@ typedef enum
 	SOUTHWEST = 128
 } direction;
 
+inline uint8_t d2i(const direction& d) {
+  switch (d) {
+    case NORTH: return 0;
+    case SOUTH: return 1;
+    case EAST: return 2;
+    case WEST: return 3;
+    case NORTHEAST: return 4;
+    case NORTHWEST: return 5;
+    case SOUTHEAST: return 6;
+    case SOUTHWEST: return 7;
+    default: return 8;
+  };
+}
+
+inline uint8_t d2i(const uint32_t& d) {
+  switch (d) {
+    case 1: return 0;
+    case 2: return 1;
+    case 4: return 2;
+    case 8: return 3;
+    case 16: return 4;
+    case 32: return 5;
+    case 64: return 6;
+    case 128: return 7;
+    default: return 8;
+  };
+}
+
 // Computes the set of "forced" directions in which to search for jump points
 // from a given location (x, y). 
 // A neighbour is forced if it cannot be proven that there is at least one 

@@ -96,6 +96,10 @@ class jps2_expansion_policy
 			return map_->width();
 		}
 
+    warthog::online_jump_point_locator2* get_locator() {
+      return this->jpl_;
+    }
+
 	private:
 		warthog::gridmap* map_;
 		warthog::blocklist* nodepool_;

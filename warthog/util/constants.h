@@ -10,6 +10,7 @@
 #include <cfloat>
 #include <cmath>
 #include <climits>
+#include <limits>
 #include <stdint.h>
 
 namespace warthog
@@ -39,11 +40,18 @@ namespace warthog
 	static const warthog::cost_t ONE_OVER_ROOT_TWO = DBL_ONE_OVER_ROOT_TWO * ONE;
 	static const warthog::cost_t ROOT_TWO_OVER_FOUR = DBL_ROOT_TWO * ONE;
 	static const warthog::cost_t INF = 0xffffffff;
+  static const uint32_t INFID = std::numeric_limits<uint32_t>::max();
+  static const uint32_t ALLMOVE = 0x7FFF;
+  static const uint32_t INVALID = 1<<15;
+	static const uint32_t IDMASK  = (1 << 24)-1;
 
 	// hashing constants
 	static const uint32_t FNV32_offset_basis = 2166136261;
 	static const uint32_t FNV32_prime = 16777619;
 
+  // graph mapper              0, 1, 2, 3,  4,  5, 6, 7
+  static const int16_t dx[] = {0, 0, 1, -1, 1, -1, 1, -1};
+  static const int16_t dy[] = {-1, 1, 0, 0, -1, -1, 1, 1};
 }
 
 #endif

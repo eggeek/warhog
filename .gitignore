@@ -3,3 +3,9 @@
 *.class
 src/bin/
 src/lib/
+*/bin/
+*/lib/
+*/.clangd
+*/compile_commands.json
+.*
+!.gitignore
