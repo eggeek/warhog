@@ -50,7 +50,7 @@ struct ExpData {
     res += to_string(exp) + "\t" + 
            to_string(gen) + "\t" + 
            to_string(touch) + "\t" + 
-           to_string(int(time)) + "\t" + to_string(scan);
+           to_string((long long)time) + "\t" + to_string(scan);
     return res;
   }
 };
