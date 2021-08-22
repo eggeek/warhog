@@ -1,24 +1,26 @@
 #include "rect_jump_point_locator.h"
 #include "constants.h"
+#include <algorithm>
 #include <cstdint>
 
 typedef warthog::rectscan::rect_jump_point_locator rectlocator;
+using namespace std;
 
-void rectlocator::jump_north(vector<uint32_t> &jpts, vector<cost_t> &costs) {
+void rectlocator::jump_north(vector<int> &jpts, vector<cost_t> &costs) {
   
-  uint32_t jpid, starty = cury;
+  int jpid, starty = cury;
   cost_t cost;
 
   // adjust edge id
-  if ((int)curx == cur_rect->x) curp = 3;
-  else if ((int)curx == cur_rect->x+cur_rect->w-1) curp = 1;
+  if ((int)curx == cur_rect->x) cure = eposition(3);
+  else if ((int)curx == cur_rect->x+cur_rect->w-1) cure = eposition(1);
 
   while (true) {
-    switch (curp) {
+    switch (cure) {
       // base case
       // on verticle border
-      case position::E:
-      case position::W:
+      case eposition::E:
+      case eposition::W:
       {
         bool res = _jump_north(jpid, cost);
         if (res) {
@@ -27,28 +29,28 @@ void rectlocator::jump_north(vector<uint32_t> &jpts, vector<cost_t> &costs) {
           return;
         }
       }
-      case position::I:
+      case eposition::I:
       // cross the rect
-      case position::S:
+      case eposition::S:
       {
         // move to the end of the border in this direction
         // and going to move to adjacent rect
         cury = cur_rect->y;
-        curp = position::N;
+        cure = eposition::N;
       }
       // move to adjacent rect
-      case position::N:
+      case eposition::N:
       {
-        int rid = map_->get_adj_rect(cur_rect, curp, curx);
+        int rid = map_->get_adj_rect(cur_rect, cure, curx);
         if (rid == -1)  // no adjacent, dead end
           return;
         // move to next rect in north
         cury -= 1;
-        curp ^= 2;
+        cure = eposition(int(cure) ^ 2);
         cur_rect = &(map_->rects[rid]);
         // adjust edge id
-        if ((int)curx == cur_rect->x) curp = 3;
-        else if ((int)curx == cur_rect->x+cur_rect->w-1) curp = 1;
+        if ((int)curx == cur_rect->x) cure = eposition(3);
+        else if ((int)curx == cur_rect->x+cur_rect->w-1) cure = eposition(1);
         
         int cur_mask = map_->get_maskh(curx, cury);
         int pre_mask = map_->get_maskh(curx, cury+1);
@@ -62,12 +64,12 @@ void rectlocator::jump_north(vector<uint32_t> &jpts, vector<cost_t> &costs) {
   }
 }
 
-bool rectlocator::_jump_north(uint32_t& node_id, cost_t& cost) {
-  uint32_t x, y;
+bool rectlocator::_jump_north(int& node_id, cost_t& cost) {
+  int x, y;
   bool res = false;
 
   node_id = INF, cost = INF;
-  for (int nid: cur_rect->jptr[curp]) {
+  for (int nid: cur_rect->jptr[cure]) {
     map_->to_xy(nid, x, y);
     if (y < cury) {
       node_id = nid;
@@ -79,7 +81,7 @@ bool rectlocator::_jump_north(uint32_t& node_id, cost_t& cost) {
   // rect is a line
   // we also need to check another side
   if (cur_rect->w == 1) {
-    for (int nid: cur_rect->jptr[curp^2]) {
+    for (int nid: cur_rect->jptr[cure^2]) {
       map_->to_xy(nid, x, y);
       cost_t new_cost = (cury - y) * ONE;
       if (y < cury && (new_cost < cost)) {
@@ -92,3 +94,148 @@ bool rectlocator::_jump_north(uint32_t& node_id, cost_t& cost) {
   }
   return res;
 };
+
+inline int manhatan_dis(int x0, int y0, int x1, int y1) {
+  return max(x0, x1) - min(x0, x1) + max(y0, y1) - min(y0, y1);
+}
+
+void rectlocator::scan(vector<int> &jpts, vector<cost_t> &costs, int dx, int dy) {
+
+  int jpid, startx = curx, starty = cury;
+  cost_t cost;
+
+  auto move_fwd = [&]() {
+    cure = r2e.at({dx, dy, rdirect::F});
+    int d2F = cur_rect->disF(dx, dy, curx, cury);
+    switch (dx) {
+      case 0:
+        cury += dy * d2F;
+        break;
+      default:
+        curx += dx * d2F;
+        break;
+    }
+    cur_node_id_ = map_->to_id(curx, cury);
+  };
+  
+  // inside, then move to the forward edge
+  if (cure == eposition::I) {
+    move_fwd();
+  }
+
+  // we need to explicitly check jump points if on border L/R
+  if (cur_rect->disLR(rdirect::L, dx, dy, curx, cury) == 0)
+    cure = r2e.at({dx, dy, rdirect::L});
+  else if (cur_rect->disLR(rdirect::R, dx, dy, curx, cury) == 0)
+    cure = r2e.at({dx, dy, rdirect::R});
+
+  assert(e2r.find({dx, dy, cure}) != e2r.end());
+  curp = e2r.at({dx, dy, cure});
+
+  while (true) {
+    switch (curp) {
+      // base case
+      // on verticle border
+      case rdirect::L:
+      case rdirect::R:
+      {
+        bool res = _find_jpt(dx, dy, jpid, cost);
+        if (res) {
+          jpts.push_back(jpid);
+          costs.push_back(cost + manhatan_dis(startx, starty, curx, cury) * ONE);
+          return;
+        }
+      }
+      // cross the rect
+      case rdirect::B:
+      {
+        // move to the end of the border in this direction
+        // and going to move to adjacent rect
+        move_fwd();
+        curp = rdirect::F;
+      }
+      // move to adjacent rect
+      case rdirect::F:
+      {
+        int rid = map_->get_adj_rect(cur_rect, cure, (cure & 1 ? cury: curx));
+        if (rid == -1)  // no adjacent, dead end
+          return;
+        // move to rect in (dx, dy)
+        curx += dx, cury += dy;
+        cure = r2e.at({dx, dy, rdirect::B});
+        cur_rect = &(map_->rects[rid]);
+        
+        int cur_mask, pre_mask;
+        if (dx) {
+          cur_mask = map_->get_maskw(curx, cury);
+          pre_mask = map_->get_maskw(curx-dx, cury-dy);
+        }
+        else {
+          cur_mask = map_->get_maskh(curx, cury);
+          pre_mask = map_->get_maskh(curx-dx, cury-dy);
+        }
+        if (map_->isjptr[pre_mask][cur_mask]) {
+          jpts.push_back(map_->to_id(curx, cury));
+          costs.push_back(manhatan_dis(startx, starty, curx, cury) * ONE);
+          return;
+        }
+
+        // we need to explicitly check jump points if on border L/R
+        if (cur_rect->disLR(rdirect::L, dx, dy, curx, cury) == 0)
+          cure = r2e.at({dx, dy, rdirect::L});
+        else if (cur_rect->disLR(rdirect::R, dx, dy, curx, cury) == 0)
+          cure = r2e.at({dx, dy, rdirect::R});
+        curp = e2r.at({dx, dy, cure});
+        // update cur node id
+        cur_node_id_ = map_->to_id(curx, cury);
+      } break;
+    }
+  }
+}
+
+bool rectlocator::_find_jpt(int dx, int dy, int& node_id, cost_t& cost) {
+  int x, y;
+  bool res = false;
+  vector<int> *jpts;
+  vector<int>::iterator it;
+
+  node_id = INF, cost = INF;
+
+  auto find = [&](eposition e) {
+    if (dx + dy > 0) {
+      // find min jpt in jptf > node id
+      jpts = &(cur_rect->jptf[e]);
+      // jpts in jptf stores in ascend order
+      it = std::upper_bound(jpts->begin(), jpts->end(), cur_node_id_);
+    }
+    else {
+      // find max jpt in jptr < node id
+      jpts = &(cur_rect->jptr[e]);
+      // jpts in jptr stores in descend order
+      it = std::upper_bound(jpts->begin(), jpts->end(), cur_node_id_, greater<int>());
+    }
+  };
+
+  find(cure);
+  if (it != jpts->end()) {
+    node_id = *it;
+    map_->to_xy(node_id, x, y);
+    cost = manhatan_dis(curx, cury, x, y) * ONE;
+    res = true;
+  }
+  // if the rect is a line (or dot)
+  if ((dx?cur_rect->h: cur_rect->w) == 1) {
+    // we also need to check another side
+    find(eposition(cure^2));
+    if (it != jpts->end()) {
+      map_->to_xy(*it, x, y);
+      cost_t new_cost = manhatan_dis(curx, cury, x, y) * ONE;
+      if (new_cost < cost) {
+        node_id = *it;
+        cost = new_cost;
+        res = true;
+      }
+    }
+  }
+  return res;
+}

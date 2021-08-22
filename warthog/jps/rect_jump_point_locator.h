@@ -23,11 +23,11 @@ class rect_jump_point_locator
       cur_node_id_ = warthog::INF;
       cur_goal_id_ = warthog::INF;
     };
-    uint32_t scan_cnt;
+    int scan_cnt;
 
 		void
-		jump(jps::direction d, uint32_t node_id, uint32_t goal_id, Rect* rect,
-				vector<uint32_t>& jpts,
+		jump(jps::direction d, int node_id, int goal_id, Rect* rect,
+				vector<int>& jpts,
 				vector<cost_t>& costs) {
 
 	    if(goal_id != cur_goal_id_) 
@@ -36,21 +36,22 @@ class rect_jump_point_locator
         cur_node_id_ = node_id;
       map_->to_xy(cur_node_id_, curx, cury);
       cur_rect = rect;
-      curp = cur_rect->pos(curx, cury);
+      cure = cur_rect->pos(curx, cury);
 
       switch(d) {
         case jps::NORTH:
-          jump_north(jpts, costs);
+          scan(jpts, costs, 0, -1);
+          // jump_north(jpts, costs);
           break;
-        // case jps::SOUTH:
-        //   jump_south(jpts, costs);
-        //   break;
-        // case jps::EAST:
-        //   jump_east(jpts, costs);
-        //   break;
-        // case jps::WEST:
-        //   jump_west(jpts, costs);
-        //   break;
+        case jps::SOUTH:
+          scan(jpts, costs, 0, 1);
+          break;
+        case jps::EAST:
+          scan(jpts, costs, 1, 0);
+          break;
+        case jps::WEST:
+          scan(jpts, costs, -1, 0);
+          break;
         // case jps::NORTHEAST:
         //   jump_northeast(jpts, costs);
         //   break;
@@ -68,25 +69,29 @@ class rect_jump_point_locator
       }
     }
 
-		uint32_t mem() { return sizeof(this); }
+		int mem() { return sizeof(this); }
 
-		void jump_north( vector<uint32_t>& jpts, vector<cost_t>& costs);
-		// void jump_south( vector<uint32_t>& jpts, vector<cost_t>& costs);
-		// void jump_east( vector<uint32_t>& jpts, vector<cost_t>& costs);
-		// void jump_west( vector<uint32_t>& jpts, vector<cost_t>& costs);
-		// void jump_northeast( vector<uint32_t>& jpts, vector<cost_t>& costs);
-		// void jump_northwest( vector<uint32_t>& jpts, vector<cost_t>& costs);
-		// void jump_southeast( vector<uint32_t>& jpts, vector<cost_t>& costs);
-		// void jump_southwest( vector<uint32_t>& jpts, vector<cost_t>& costs);
+		void jump_north( vector<int>& jpts, vector<cost_t>& costs);
+    void scan(vector<int> &jpts, vector<cost_t> &costs, int dx, int dy);
+		// void jump_south( vector<int>& jpts, vector<cost_t>& costs);
+		// void jump_east( vector<int>& jpts, vector<cost_t>& costs);
+		// void jump_west( vector<int>& jpts, vector<cost_t>& costs);
+		// void jump_northeast( vector<int>& jpts, vector<cost_t>& costs);
+		// void jump_northwest( vector<int>& jpts, vector<cost_t>& costs);
+		// void jump_southeast( vector<int>& jpts, vector<cost_t>& costs);
+		// void jump_southwest( vector<int>& jpts, vector<cost_t>& costs);
 
 	private:
-		uint32_t cur_goal_id_;
-		uint32_t cur_node_id_;
-		uint32_t curx, cury, curp;
+		int cur_goal_id_;
+		int cur_node_id_;
+		int curx, cury; 
+    eposition cure;
+    rdirect curp;
     RectMap* map_;
     Rect* cur_rect;
 
-    bool _jump_north(uint32_t& node_id, cost_t& cost);
+    bool _jump_north(int& node_id, cost_t& cost);
+    bool _find_jpt(int dx, int dy, int& node_id, cost_t& cost);
 };
 
 }}

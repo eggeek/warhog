@@ -13,6 +13,8 @@
 #include <map>
 #include <vector>
 #include <set>
+#include <map>
+#include <tuple>
 
 #include "gm_parser.h"
 #include "gridmap.h"
@@ -36,14 +38,77 @@ using namespace std;
  *           edge2
  */
 
-// the id of oppsite edge: {0, 2}, {1, 3}
-static const int nxtId[4] = {2, 3, 0, 1};
-enum position {
+enum eposition {
   N = 0,
   E = 1,
   S = 2,
   W = 3,
   I = 4,
+};
+
+/* relative direction
+ *       Forward 2
+ *      +--------+
+ *      |        |
+ *  Left|        |Right
+ *    1 |        | 3
+ *      +--------+
+ *        Back 0
+ *
+ */
+enum rdirect {
+  B = 0,
+  L = 1,
+  R = 2,
+  F = 3,
+};
+
+// given move direction, return the edge id in the relative direction
+const map<tuple<int, int, rdirect>, eposition> r2e = {
+  // north move
+  {{0, -1, rdirect::B}, eposition::S},
+  {{0, -1, rdirect::L}, eposition::W},
+  {{0, -1, rdirect::F}, eposition::N},
+  {{0, -1, rdirect::R}, eposition::E},
+  // south move
+  {{0, 1,  rdirect::B}, eposition::N},
+  {{0, 1,  rdirect::L}, eposition::E},
+  {{0, 1,  rdirect::F}, eposition::S},
+  {{0, 1,  rdirect::R}, eposition::W},
+  // east move
+  {{1, 0,  rdirect::B}, eposition::W},
+  {{1, 0,  rdirect::L}, eposition::N},
+  {{1, 0,  rdirect::F}, eposition::E},
+  {{1, 0,  rdirect::R}, eposition::S},
+  // west move
+  {{-1, 0, rdirect::B}, eposition::E},
+  {{-1, 0, rdirect::L}, eposition::S},
+  {{-1, 0, rdirect::F}, eposition::W},
+  {{-1, 0, rdirect::R}, eposition::N},
+};
+
+// given move direction, return the edge id in the relative direction
+const map<tuple<int, int, eposition>, rdirect> e2r = {
+  // north move
+  {{0, -1, eposition::N}, rdirect::F},
+  {{0, -1, eposition::E}, rdirect::R},
+  {{0, -1, eposition::S}, rdirect::B},
+  {{0, -1, eposition::W}, rdirect::L},
+  // south move
+  {{0, 1,  eposition::N}, rdirect::B},
+  {{0, 1,  eposition::E}, rdirect::L},
+  {{0, 1,  eposition::S}, rdirect::F},
+  {{0, 1,  eposition::W}, rdirect::R},
+  // east move
+  {{1, 0,  eposition::N}, rdirect::L},
+  {{1, 0,  eposition::E}, rdirect::F},
+  {{1, 0,  eposition::S}, rdirect::R},
+  {{1, 0,  eposition::W}, rdirect::B},
+  // west move
+  {{-1, 0,  eposition::N}, rdirect::R},
+  {{-1, 0,  eposition::E}, rdirect::B},
+  {{-1, 0,  eposition::S}, rdirect::L},
+  {{-1, 0,  eposition::W}, rdirect::F},
 };
 
 class Rect {
@@ -55,12 +120,55 @@ class Rect {
   vector<int> jptf[4];  // jump points in "forward" direction (top-down, left-right)
   vector<int> jptr[4];  // jump points in "reverse" direction (down-top, right-left)
 
-  inline int pos(const int& px, const int& py) const {
-    if (py == y) return position::N;
-    if (px == x+w-1) return position::E;
-    if (py == y+h-1) return position::S;
-    if (px == x) return position::W;
-    return position::I;
+  inline eposition pos(const int& px, const int& py) const {
+    if (py == y) return eposition::N;
+    if (px == x+w-1) return eposition::E;
+    if (py == y+h-1) return eposition::S;
+    if (px == x) return eposition::W;
+    return eposition::I;
+  }
+
+  // return axis of an edge
+  // vertical return x, horizontal return y
+  inline int axis(eposition p) const {
+    switch (p) {
+      case eposition::N: return y;
+      case eposition::E: return x+w-1;
+      case eposition::S: return y+h-1;
+      case eposition::W: return x;
+      default:
+        assert(false);
+        return -1;
+    }
+  }
+
+  inline int len(eposition p) const {
+    switch (p) {
+      case eposition::N:
+      case eposition::S:
+        return w;
+      case eposition::E:
+      case eposition::W:
+        return h;
+      default:
+        assert(false);
+        return -1;
+    }
+  }
+
+  // distance to border F
+  // return >= 0
+  inline int disF(int dx, int dy, int curx, int cury) const {
+    int ax = axis(r2e.at({dx, dy, rdirect::F}));
+    return dx * (ax - curx) + dy * (ax - cury);
+  }
+
+  // distance to border L or R
+  // L: <0
+  // R: >0
+  inline int disLR(rdirect p, int dx, int dy, int curx, int cury) const {
+    int ax = axis(r2e.at({dx, dy, p}));
+    return dy * (ax - curx) + dx * (ax - cury);
   }
 
   inline void get_range(const int& eid, int& lb, int& ub) const {
@@ -127,7 +235,7 @@ class RectMap {
 
   inline const char* filename() { return this->_filename.c_str();}
 
-  inline int get_adj_rect(const Rect* r, const int& eid, const int& pos) {
+  inline int get_adj_rect(const Rect* r, const int& eid, const int& pos) const {
     // when edge is horizontal, pos is x axis, otherwise pos is y axis
     int lb, ub;
     for (int i: r->adj[eid]) {
@@ -159,7 +267,7 @@ class RectMap {
     return res;
   }
 
-  uint32_t mem() { return sizeof(*this); }
+  int mem() { return sizeof(*this); }
 
   void print(ostream& out) {
     out << "type "<< "octile" << std::endl;
@@ -188,12 +296,12 @@ class RectMap {
     }
   }
 
-  inline void to_xy(uint32_t id, uint32_t& x, uint32_t& y) {
+  inline void to_xy(int id, int& x, int& y) {
     y = id / mapw;
     x = id % mapw;
   }
 
-  inline uint32_t to_id(uint32_t x, uint32_t y) {
+  inline int to_id(int x, int y) const {
     return y * mapw + x;
   }
 

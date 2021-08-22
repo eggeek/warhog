@@ -56,14 +56,16 @@ namespace TEST_RECT {
     }
   }
 
-  TEST_CASE("jump-north") {
+  TEST_CASE("jump") {
     vector<string> cases = {
       "./testcases/rects/simple0.rect",
       "./testcases/rects/arena.rect",
       "../maps/rooms/64room_000.map",
+      "../maps/starcraft/CatwalkAlley.map"
     };
     for (auto &each: cases) {
       string rectfile = each;
+      cout << "map: " << rectfile << endl;
       bool flag = rectfile.back() == 'p';
       RectMap rectmap(rectfile.c_str(), flag);
       warthog::gridmap* gmap = new warthog::gridmap(rectfile.c_str());
@@ -71,22 +73,25 @@ namespace TEST_RECT {
         new warthog::online_jump_point_locator2(gmap);
       rect_jump_point_locator jpl = rect_jump_point_locator(&rectmap); 
 
-      vector<uint32_t> jpts, jpts2;
+      vector<int> jpts; 
+      vector<uint32_t> jpts2;
       vector<warthog::cost_t> costs, costs2;
       const uint32_t id_mask = (1 << 24) - 1;
+      for (int d=0; d<4; d++)
       for (int x=0; x<rectmap.mapw; x++) {
         for (int y=0; y<rectmap.maph; y++) {
+          warthog::jps::direction dir = (warthog::jps::direction)(1<<d);
           int padded_nid = gmap->to_padded_id(x, y);
           if (gmap->get_label(padded_nid) == 0) continue;
           Rect* r = rectmap.get_rect(x, y);
           jpts.clear(); jpts2.clear();
           costs.clear(); costs2.clear();
-          jpl2->jump(warthog::jps::NORTH, padded_nid, warthog::INF, jpts2, costs2);
-          jpl.jump(warthog::jps::NORTH, y*rectmap.mapw+x, warthog::INF, r, jpts, costs);
-          // cout << x << " " << y << endl;
+          jpl2->jump(dir, padded_nid, warthog::INF, jpts2, costs2);
+          jpl.jump(dir, y*rectmap.mapw+x, warthog::INF, r, jpts, costs);
           REQUIRE(jpts.size() == jpts2.size());
           for (int i=0; i<(int)jpts.size(); i++) {
-            uint32_t x, y, x2, y2;
+            int x, y;
+            uint32_t x2, y2;
             rectmap.to_xy(jpts[i], x, y);
             gmap->to_unpadded_xy(jpts2[i] & id_mask, x2, y2);
             REQUIRE(x == x2);
