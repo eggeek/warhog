@@ -174,6 +174,12 @@ namespace rectgen {
 
 
       // basic checks passed. initialse the map
+      map_traversable.clear();
+      clear_above.clear();
+      clear_left.clear();
+      rectangle_id.clear();
+      vertex_id.clear();
+      grid_rectangles.clear();
       map_traversable = vector<vbool>(map_height, vbool(map_width));
       clear_above = vector<vint>(map_height, vint(map_width, 0));
       clear_left = vector<vint>(map_height, vint(map_width, 0));
@@ -425,6 +431,10 @@ namespace rectgen {
 
   void make_rectangles()
   {
+      cur_rect_id = 0;
+      cur_vertex_id = 0;
+      final_vertices.clear();
+      final_rectangles.clear();
       // Gets the best rectangle and takes that.
       // Repeat until there are no more rectangles.
       priority_queue<SearchNode> pq;

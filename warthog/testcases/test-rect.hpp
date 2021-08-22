@@ -81,6 +81,7 @@ namespace TEST_RECT {
       for (int x=0; x<rectmap.mapw; x++) {
         for (int y=0; y<rectmap.maph; y++) {
           warthog::jps::direction dir = (warthog::jps::direction)(1<<d);
+          // cout << "x: " << x << ", y: " << y << " d: " << dir << endl;
           int padded_nid = gmap->to_padded_id(x, y);
           if (gmap->get_label(padded_nid) == 0) continue;
           Rect* r = rectmap.get_rect(x, y);
