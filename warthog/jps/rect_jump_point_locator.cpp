@@ -2,6 +2,7 @@
 #include "constants.h"
 #include <algorithm>
 #include <cstdint>
+#include <vector>
 
 typedef warthog::rectscan::rect_jump_point_locator rectlocator;
 using namespace std;
@@ -11,7 +12,7 @@ inline int manhatan_dis(int x0, int y0, int x1, int y1) {
 }
 
 void rectlocator::_scan(
-    int& curx, int& cury, Rect* cur_rect,
+    int curx, int cury, Rect* cur_rect,
     vector<int> &jpts, vector<cost_t> &costs, int dx, int dy) {
 
   rdirect curp;
@@ -19,7 +20,11 @@ void rectlocator::_scan(
   cure = cur_rect->pos(curx, cury);
 
   int jpid, startx = curx, starty = cury;
+  bool onL = false, onR = false;
   cost_t cost;
+
+  onL = cur_rect->disLR(rdirect::L, dx, dy, curx, cury) == 0;
+  onR = cur_rect->disLR(rdirect::R, dx, dy, curx, cury) == 0;
 
   auto move_fwd = [&]() {
     cure = r2e.at({dx, dy, rdirect::F});
@@ -41,9 +46,9 @@ void rectlocator::_scan(
   }
 
   // we need to explicitly check jump points if on border L/R
-  if (cur_rect->disLR(rdirect::L, dx, dy, curx, cury) == 0)
+  if (onL)
     cure = r2e.at({dx, dy, rdirect::L});
-  else if (cur_rect->disLR(rdirect::R, dx, dy, curx, cury) == 0)
+  else if (onR)
     cure = r2e.at({dx, dy, rdirect::R});
 
   assert(e2r.find({dx, dy, cure}) != e2r.end());
@@ -77,30 +82,36 @@ void rectlocator::_scan(
         int rid = map_->get_adj_rect(cur_rect, cure, (cure & 1 ? cury: curx));
         if (rid == -1)  // no adjacent, dead end
           return;
-        // move to rect in (dx, dy)
+
+        // if cur node is on L/R border,
+        // we need to check whether the next node can be a jump pont
+        if (onL || onR) {
+          int cur_mask, nxt_mask;
+          if (dx) {
+            cur_mask = map_->get_maskw(curx, cury);
+            nxt_mask = map_->get_maskw(curx+dx, cury+dy);
+          }
+          else {
+            cur_mask = map_->get_maskh(curx, cury);
+            nxt_mask = map_->get_maskh(curx+dx, cury+dy);
+          }
+          if (map_->isjptr[cur_mask][nxt_mask]) {
+            jpts.push_back(map_->to_id(curx+dx, cury+dy));
+            costs.push_back(manhatan_dis(startx, starty, curx+dx, cury+dy) * ONE);
+            return;
+          }
+        }
+        // move to adjacent rect in (dx, dy)
         curx += dx, cury += dy;
         cure = r2e.at({dx, dy, rdirect::B});
         cur_rect = &(map_->rects[rid]);
-        
-        int cur_mask, pre_mask;
-        if (dx) {
-          cur_mask = map_->get_maskw(curx, cury);
-          pre_mask = map_->get_maskw(curx-dx, cury-dy);
-        }
-        else {
-          cur_mask = map_->get_maskh(curx, cury);
-          pre_mask = map_->get_maskh(curx-dx, cury-dy);
-        }
-        if (map_->isjptr[pre_mask][cur_mask]) {
-          jpts.push_back(map_->to_id(curx, cury));
-          costs.push_back(manhatan_dis(startx, starty, curx, cury) * ONE);
-          return;
-        }
+        onL = cur_rect->disLR(rdirect::L, dx, dy, curx, cury) == 0;
+        onR = cur_rect->disLR(rdirect::R, dx, dy, curx, cury) == 0;
 
         // we need to explicitly check jump points if on border L/R
-        if (cur_rect->disLR(rdirect::L, dx, dy, curx, cury) == 0)
+        if (onL)
           cure = r2e.at({dx, dy, rdirect::L});
-        else if (cur_rect->disLR(rdirect::R, dx, dy, curx, cury) == 0)
+        else if (onR)
           cure = r2e.at({dx, dy, rdirect::R});
         curp = e2r.at({dx, dy, cure});
         // update cur node id

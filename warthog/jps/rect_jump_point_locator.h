@@ -77,16 +77,12 @@ class rect_jump_point_locator
     RectMap* map_;
 
     void _scan(
-        int& curx, int& cury, Rect* cur_rect,
+        int curx, int cury, Rect* cur_rect,
         vector<int> &jpts, vector<cost_t> &costs, int dx, int dy);
 
     bool _find_jpt(
         Rect* cur_rect, eposition cure, int curx, int cury, 
         int dx, int dy, int& node_id, cost_t& cost);
-
-    void _scanDiag(
-        int& curx, int& cury, Rect* cur_rect, 
-        vector<int> &jpts, vector<cost_t> &costs, int dx, int dy);
 };
 
 }}
