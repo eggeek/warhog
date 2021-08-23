@@ -34,35 +34,34 @@ class rect_jump_point_locator
         cur_goal_id_ = goal_id;
       if (node_id != cur_node_id_)
         cur_node_id_ = node_id;
+      int curx, cury;
       map_->to_xy(cur_node_id_, curx, cury);
-      cur_rect = rect;
-      cure = cur_rect->pos(curx, cury);
 
       switch(d) {
         case jps::NORTH:
-          scan(jpts, costs, 0, -1);
+          _scan(curx, cury, rect, jpts, costs, 0, -1);
           // jump_north(jpts, costs);
           break;
         case jps::SOUTH:
-          scan(jpts, costs, 0, 1);
+          _scan(curx, cury, rect, jpts, costs, 0, 1);
           break;
         case jps::EAST:
-          scan(jpts, costs, 1, 0);
+          _scan(curx, cury, rect, jpts, costs, 1, 0);
           break;
         case jps::WEST:
-          scan(jpts, costs, -1, 0);
+          _scan(curx, cury, rect, jpts, costs, -1, 0);
           break;
         // case jps::NORTHEAST:
-        //   jump_northeast(jpts, costs);
+        //   scanDiag(jpts, costs, 1, -1);
         //   break;
         // case jps::NORTHWEST:
-        //   jump_northwest(jpts, costs);
+        //   scanDiag(jpts, costs, -1, -1);
         //   break;
         // case jps::SOUTHEAST:
-        //   jump_southeast(jpts, costs);
+        //   scanDiag(jpts, costs, 1, 1);
         //   break;
         // case jps::SOUTHWEST:
-        //   jump_southwest(jpts, costs);
+        //   scanDiag(jpts, costs, -1, 1);
         //   break;
         default:
           break;
@@ -71,27 +70,23 @@ class rect_jump_point_locator
 
 		int mem() { return sizeof(this); }
 
-		void jump_north( vector<int>& jpts, vector<cost_t>& costs);
-    void scan(vector<int> &jpts, vector<cost_t> &costs, int dx, int dy);
-		// void jump_south( vector<int>& jpts, vector<cost_t>& costs);
-		// void jump_east( vector<int>& jpts, vector<cost_t>& costs);
-		// void jump_west( vector<int>& jpts, vector<cost_t>& costs);
-		// void jump_northeast( vector<int>& jpts, vector<cost_t>& costs);
-		// void jump_northwest( vector<int>& jpts, vector<cost_t>& costs);
-		// void jump_southeast( vector<int>& jpts, vector<cost_t>& costs);
-		// void jump_southwest( vector<int>& jpts, vector<cost_t>& costs);
 
 	private:
 		int cur_goal_id_;
 		int cur_node_id_;
-		int curx, cury; 
-    eposition cure;
-    rdirect curp;
     RectMap* map_;
-    Rect* cur_rect;
 
-    bool _jump_north(int& node_id, cost_t& cost);
-    bool _find_jpt(int dx, int dy, int& node_id, cost_t& cost);
+    void _scan(
+        int& curx, int& cury, Rect* cur_rect,
+        vector<int> &jpts, vector<cost_t> &costs, int dx, int dy);
+
+    bool _find_jpt(
+        Rect* cur_rect, eposition cure, int curx, int cury, 
+        int dx, int dy, int& node_id, cost_t& cost);
+
+    void _scanDiag(
+        int& curx, int& cury, Rect* cur_rect, 
+        vector<int> &jpts, vector<cost_t> &costs, int dx, int dy);
 };
 
 }}
