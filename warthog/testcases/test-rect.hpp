@@ -74,6 +74,27 @@ namespace TEST_RECT {
     }
   }
 
+  void cmp_jpts(vector<int> &jpts, vector<uint32_t> &jpts2, warthog::gridmap* gmap) { 
+
+    REQUIRE(jpts.size() == jpts2.size());
+    const uint32_t id_mask = (1 << 24) - 1;
+    set<int> m1, m2;
+    for (int i=0; i<(int)jpts.size(); i++) {
+      uint32_t x, y;
+      gmap->to_unpadded_xy(jpts2[i] & id_mask, x, y);
+      m1.insert(jpts[i]);
+      m2.insert(y * gmap->header_width() + x);
+    }
+    for (auto &it: m1) {
+      REQUIRE(m2.count(it) == 1);
+    }
+    for (auto &it: m2) {
+      REQUIRE(m1.count(it) == 1);
+    }
+  }
+
+
+
   TEST_CASE("jump") {
     vector<string> cases = {
       "./testcases/rects/simple0.rect",
@@ -107,6 +128,53 @@ namespace TEST_RECT {
           jpl2->jump(dir, padded_nid, warthog::INF, jpts2, costs2);
           jpl.jump(dir, y*rectmap.mapw+x, warthog::INF, r, jpts, costs);
           cmp_jpts(jpts, costs, jpts2, costs2, gmap);
+        }
+      }
+      delete gmap;
+      delete jpl2;
+    }
+  }
+
+  TEST_CASE("intervalScan") {
+    vector<string> cases = {
+      "./testcases/rects/simple0.rect",
+      "./testcases/rects/arena.rect",
+      "../maps/rooms/64room_000.map",
+      "../maps/starcraft/CatwalkAlley.map"
+    };
+    vector<string> desc = {"NORTH", "SOUTH", "EAST", "WEST"};
+    for (auto &each: cases) {
+      string rectfile = each;
+      cout << "map:" << rectfile << endl; 
+      bool flag = rectfile.back() == 'p';
+      RectMap rectmap(rectfile.c_str(), flag);
+      warthog::gridmap* gmap = new warthog::gridmap(rectfile.c_str());
+      warthog::online_jump_point_locator2* jpl2 = 
+        new warthog::online_jump_point_locator2(gmap);
+      rect_jump_point_locator jpl = rect_jump_point_locator(&rectmap); 
+
+      vector<int> jpts; 
+      vector<uint32_t> jpts2;
+      vector<warthog::cost_t> costs, costs2;
+      for (auto& it: rectmap.rects) {
+        for (int d=0; d<4; d++) {
+          warthog::jps::direction dir = (warthog::jps::direction)(1<<d);
+          int dx = warthog::dx[d];
+          int dy = warthog::dy[d];
+          int lb, ub, ax;
+          eposition cure = r2e.at({dx, dy, rdirect::F});
+          it.get_range(cure, lb, ub);
+          ax = it.axis(cure);
+          jpts.clear(); costs.clear();
+          jpts2.clear(); costs2.clear();
+          // cout << "id: " << it.rid << ", lb: " << lb << ", ub: " << ub
+          //      << ", ax: " << ax << ", d: " << desc[d] << endl;
+          for (int i=lb; i<=ub; i++) {
+            int padded_nid = gmap->to_padded_id(dx?ax: i, dx?i: ax);
+            jpl2->jump(dir, padded_nid, warthog::INF, jpts2, costs2);
+          }
+          jpl.scanInterval(lb, ub, &(it), jpts, costs, dx, dy);
+          cmp_jpts(jpts, jpts2, gmap);
         }
       }
       delete gmap;

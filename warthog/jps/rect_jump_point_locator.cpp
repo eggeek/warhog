@@ -12,11 +12,14 @@ inline int manhatan_dis(int x0, int y0, int x1, int y1) {
 }
 
 void rectlocator::_scan(
-    int curx, int cury, Rect* cur_rect,
+    int node_id, Rect* cur_rect,
     vector<int> &jpts, vector<cost_t> &costs, int dx, int dy) {
 
   rdirect curp;
   eposition cure;
+  int curx, cury;
+  cur_node_id_ = node_id;
+  map_->to_xy(node_id, curx, cury);
   cure = cur_rect->pos(curx, cury);
 
   int jpid, startx = curx, starty = cury;
@@ -168,4 +171,66 @@ bool rectlocator::_find_jpt(Rect* cur_rect, eposition cure,
     }
   }
   return res;
+}
+
+void rectlocator::_scanDiag(
+  int& curx, int& cury, Rect* rect,
+  vector<int> &jpts, vector<cost_t> &costs, int dx, int dy) {
+
+  int vertD, horiD, d;
+
+  while (true) {
+    // vertical scan if possible
+    if (rect->disLR(rdirect::L, 0, dy, curx, cury) ||
+        rect->disLR(rdirect::R, 0, dy, curx, cury))
+      // _scan(curx, cury, rect, jpts, costs, dx, dy);
+    vertD = rect->disF(0, dy, curx, cury);
+    horiD = rect->disF(dx, 0, curx, cury);
+    d  = min(vertD, horiD);
+    _scanInterval(curx, curx+dx*d, rect, jpts, costs, dx, 0);
+    _scanInterval(cury, cury+dy*d, rect, jpts, costs, 0, dy);
+    curx += dx*d;
+    cury += dy*d;
+
+  }
+}
+
+// push interval [lb, ub] in a cardinal direction (dx, dy)
+// lb and ub are guaranteed not overlap with L/R border of the current rect
+// thus no need to check jump point when moving from current rect to the adjcent
+// we always push the interval from the F border of cur to B border of the next
+void rectlocator::_scanInterval(
+  int lb, int ub, Rect* cur_rect,
+  vector<int> &jpts, vector<cost_t> &costs, int dx, int dy) {
+
+  // interval is empty
+  if (lb > ub) return;
+  eposition cure = r2e.at({dx, dy, rdirect::F});
+
+  int rL, rR, vertL, vertR, hori;
+
+  for (int rid: cur_rect->adj[cure]) {
+    Rect* r = &(map_->rects[rid]);
+    r->get_range(cure, rL , rR);
+    // no overlap
+    if (rL > ub || rR < lb) continue;
+    hori = r->axis(r2e.at({dx, dy, rdirect::B}));
+
+    // base case 1:
+    vertL = r->axis(r2e.at({dx, dy, rdirect::L})); 
+    if (lb <= vertL && vertL <= ub) {
+      // dx!=0 is a horizontal move
+      _scan(map_->to_id(dx?hori:vertL, dx?vertL:hori), r, jpts, costs, dx, dy);
+    }
+
+    // base case 2:
+    vertR = r->axis(r2e.at({dx, dy, rdirect::R}));
+    if (vertR != vertL && lb <= vertR && vertR <= ub) {
+      _scan(map_->to_id(dx?hori:vertR, dx?vertR:hori), r, jpts, costs, dx, dy);
+    }
+    // remove L/R borders
+    rL++, rR--;
+    // if they still overlap, push the interval to the next rect
+    _scanInterval(max(rL, lb), min(rR, ub), r, jpts, costs, dx, dy);
+  }
 }
