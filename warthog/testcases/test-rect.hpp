@@ -56,23 +56,6 @@ namespace TEST_RECT {
     }
   }
 
-  void cmp_jpts(vector<int> &jpts, vector<warthog::cost_t>& costs, 
-      vector<uint32_t> &jpts2, vector<warthog::cost_t> &costs2, warthog::gridmap* gmap) {
-    REQUIRE(jpts.size() == jpts2.size());
-
-    const uint32_t id_mask = (1 << 24) - 1;
-    map<int, warthog::cost_t> m1, m2;
-    for (int i=0; i<(int)jpts.size(); i++) {
-      uint32_t x, y;
-      gmap->to_unpadded_xy(jpts2[i] & id_mask, x, y);
-      m1[jpts[i]] = costs[i];
-      m2[y * gmap->header_width() + x] = costs[i];
-    }
-    for (auto &it: m1) {
-      REQUIRE(m2.find(it.first) != m2.end());
-      REQUIRE(it.second == m2.at(it.first));
-    }
-  }
 
   void cmp_jpts(vector<int> &jpts, vector<uint32_t> &jpts2, warthog::gridmap* gmap) { 
 
@@ -114,7 +97,7 @@ namespace TEST_RECT {
 
       vector<int> jpts; 
       vector<uint32_t> jpts2;
-      vector<warthog::cost_t> costs, costs2;
+      vector<warthog::cost_t> costs2;
       for (int d=0; d<4; d++)
       for (int x=0; x<rectmap.mapw; x++) {
         for (int y=0; y<rectmap.maph; y++) {
@@ -123,11 +106,14 @@ namespace TEST_RECT {
           int padded_nid = gmap->to_padded_id(x, y);
           if (gmap->get_label(padded_nid) == 0) continue;
           Rect* r = rectmap.get_rect(x, y);
-          jpts.clear(); jpts2.clear();
-          costs.clear(); costs2.clear();
+          jpts2.clear(); costs2.clear();
           jpl2->jump(dir, padded_nid, warthog::INF, jpts2, costs2);
-          jpl.jump(dir, y*rectmap.mapw+x, warthog::INF, r, jpts, costs);
-          cmp_jpts(jpts, costs, jpts2, costs2, gmap);
+
+          jpl.get_jpts().clear();
+          jpl.get_costs().clear();
+          jpl.jump(dir, y*rectmap.mapw+x, warthog::INF, r);
+          jpts = jpl.get_jpts();
+          cmp_jpts(jpts, jpts2, gmap);
         }
       }
       delete gmap;
@@ -165,7 +151,6 @@ namespace TEST_RECT {
           eposition cure = r2e.at({dx, dy, rdirect::F});
           it.get_range(cure, lb, ub);
           ax = it.axis(cure);
-          jpts.clear(); costs.clear();
           jpts2.clear(); costs2.clear();
           // cout << "id: " << it.rid << ", lb: " << lb << ", ub: " << ub
           //      << ", ax: " << ax << ", d: " << desc[d] << endl;
@@ -173,7 +158,10 @@ namespace TEST_RECT {
             int padded_nid = gmap->to_padded_id(dx?ax: i, dx?i: ax);
             jpl2->jump(dir, padded_nid, warthog::INF, jpts2, costs2);
           }
-          jpl.scanInterval(lb, ub, &(it), jpts, costs, dx, dy);
+
+          jpl.get_jpts().clear(); jpl.get_costs().clear();
+          jpl.scanInterval(lb, ub, &(it), dx, dy);
+          jpts = jpl.get_jpts();
           cmp_jpts(jpts, jpts2, gmap);
         }
       }

@@ -11,9 +11,7 @@ inline int manhatan_dis(int x0, int y0, int x1, int y1) {
   return max(x0, x1) - min(x0, x1) + max(y0, y1) - min(y0, y1);
 }
 
-void rectlocator::_scan(
-    int node_id, Rect* cur_rect,
-    vector<int> &jpts, vector<cost_t> &costs, int dx, int dy) {
+void rectlocator::_scan(int node_id, Rect* cur_rect, int dx, int dy) {
 
   rdirect curp;
   eposition cure;
@@ -22,9 +20,8 @@ void rectlocator::_scan(
   map_->to_xy(node_id, curx, cury);
   cure = cur_rect->pos(curx, cury);
 
-  int jpid, startx = curx, starty = cury;
+  int jpid;
   bool onL = false, onR = false;
-  cost_t cost;
 
   onL = cur_rect->disLR(rdirect::L, dx, dy, curx, cury) == 0;
   onR = cur_rect->disLR(rdirect::R, dx, dy, curx, cury) == 0;
@@ -64,10 +61,9 @@ void rectlocator::_scan(
       case rdirect::L:
       case rdirect::R:
       {
-        bool res = _find_jpt(cur_rect, cure, curx, cury, dx, dy, jpid, cost);
+        bool res = _find_jpt(cur_rect, cure, curx, cury, dx, dy, jpid);
         if (res) {
-          jpts.push_back(jpid);
-          costs.push_back(cost + manhatan_dis(startx, starty, curx, cury) * ONE);
+          jpts_.push_back(jpid);
           return;
         }
       }
@@ -99,8 +95,7 @@ void rectlocator::_scan(
             nxt_mask = map_->get_maskh(curx+dx, cury+dy);
           }
           if (map_->isjptr[cur_mask][nxt_mask]) {
-            jpts.push_back(map_->to_id(curx+dx, cury+dy));
-            costs.push_back(manhatan_dis(startx, starty, curx+dx, cury+dy) * ONE);
+            jpts_.push_back(map_->to_id(curx+dx, cury+dy));
             return;
           }
         }
@@ -125,14 +120,13 @@ void rectlocator::_scan(
 }
 
 bool rectlocator::_find_jpt(Rect* cur_rect, eposition cure, 
-    int curx, int cury,
-    int dx, int dy, int& node_id, cost_t& cost) {
+    int curx, int cury, int dx, int dy, int& node_id) {
   int x, y;
   bool res = false;
   vector<int> *jpts;
   vector<int>::iterator it;
-
-  node_id = INF, cost = INF;
+  cost_t cost = INF;
+  node_id = INF;
 
   auto find = [&](eposition e) {
     if (dx + dy > 0) {
@@ -174,8 +168,7 @@ bool rectlocator::_find_jpt(Rect* cur_rect, eposition cure,
 }
 
 void rectlocator::_scanDiag(
-  int& curx, int& cury, Rect* rect,
-  vector<int> &jpts, vector<cost_t> &costs, int dx, int dy) {
+  int& curx, int& cury, Rect* rect, int dx, int dy) {
 
   int vertD, horiD, d;
 
@@ -187,8 +180,8 @@ void rectlocator::_scanDiag(
     vertD = rect->disF(0, dy, curx, cury);
     horiD = rect->disF(dx, 0, curx, cury);
     d  = min(vertD, horiD);
-    _scanInterval(curx, curx+dx*d, rect, jpts, costs, dx, 0);
-    _scanInterval(cury, cury+dy*d, rect, jpts, costs, 0, dy);
+    _scanInterval(curx, curx+dx*d, rect, dx, 0);
+    _scanInterval(cury, cury+dy*d, rect, 0, dy);
     curx += dx*d;
     cury += dy*d;
 
@@ -199,9 +192,7 @@ void rectlocator::_scanDiag(
 // lb and ub are guaranteed not overlap with L/R border of the current rect
 // thus no need to check jump point when moving from current rect to the adjcent
 // we always push the interval from the F border of cur to B border of the next
-void rectlocator::_scanInterval(
-  int lb, int ub, Rect* cur_rect,
-  vector<int> &jpts, vector<cost_t> &costs, int dx, int dy) {
+void rectlocator::_scanInterval(int lb, int ub, Rect* cur_rect, int dx, int dy) {
 
   // interval is empty
   if (lb > ub) return;
@@ -220,17 +211,17 @@ void rectlocator::_scanInterval(
     vertL = r->axis(r2e.at({dx, dy, rdirect::L})); 
     if (lb <= vertL && vertL <= ub) {
       // dx!=0 is a horizontal move
-      _scan(map_->to_id(dx?hori:vertL, dx?vertL:hori), r, jpts, costs, dx, dy);
+      _scan(map_->to_id(dx?hori:vertL, dx?vertL:hori), r, dx, dy);
     }
 
     // base case 2:
     vertR = r->axis(r2e.at({dx, dy, rdirect::R}));
     if (vertR != vertL && lb <= vertR && vertR <= ub) {
-      _scan(map_->to_id(dx?hori:vertR, dx?vertR:hori), r, jpts, costs, dx, dy);
+      _scan(map_->to_id(dx?hori:vertR, dx?vertR:hori), r, dx, dy);
     }
     // remove L/R borders
     rL++, rR--;
     // if they still overlap, push the interval to the next rect
-    _scanInterval(max(rL, lb), min(rR, ub), r, jpts, costs, dx, dy);
+    _scanInterval(max(rL, lb), min(rR, ub), r, dx, dy);
   }
 }
