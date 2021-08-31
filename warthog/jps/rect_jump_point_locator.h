@@ -10,6 +10,7 @@
 #include "jps.h"
 #include "rectmap.h"
 #include <cstdint>
+#include <queue>
 #include <vector>
 
 namespace warthog {
@@ -44,17 +45,17 @@ class rect_jump_point_locator
           _scan(node_id, rect, -1, 0);
           break;
         // case jps::NORTHEAST:
-        //   scanDiag(jpts, costs, 1, -1);
+        //   _scanDiag(node_id, rect, 1, -1);
         //   break;
         // case jps::NORTHWEST:
-        //   scanDiag(jpts, costs, -1, -1);
+        //   _scanDiag(node_id, rect, -1, -1);
         //   break;
         // case jps::SOUTHEAST:
-        //   scanDiag(jpts, costs, 1, 1);
+        //   _scanDiag(node_id, rect, 1, 1);
         //   break;
         // case jps::SOUTHWEST:
-        //   scanDiag(jpts, costs, -1, 1);
-        //   break;
+        //   _scanDiag(node_id, rect, -1, 1);
+          break;
         default:
           break;
       }
@@ -64,13 +65,16 @@ class rect_jump_point_locator
 
     void scanInterval(int lb, int ub, Rect* cur_rect, int dx, int dy) {
 
-      eposition cure = r2e.at({dx, dy, rdirect::F});
-      int ax = cur_rect->axis(cure);
-      _scan(map_->to_id(dx?ax: lb, dx?lb: ax), cur_rect, dx, dy);
-      if (ub != lb) {
-        _scan(map_->to_id(dx?ax: ub, dx?ub: ax), cur_rect, dx, dy);
-        _scanInterval(lb+1, ub-1, cur_rect, dx, dy);
-      }
+      // eposition cure = r2e.at({dx, dy, rdirect::F});
+      // int ax = cur_rect->axis(cure);
+      // _scan(map_->to_id(dx?ax: lb, dx?lb: ax), cur_rect, dx, dy);
+      // if (ub != lb) {
+      //   _scan(map_->to_id(dx?ax: ub, dx?ub: ax), cur_rect, dx, dy);
+      //   _scanInterval(lb+1, ub-1, cur_rect, dx, dy);
+      // }
+      while (!intervals.empty()) intervals.pop();
+      intervals.push({lb, ub, cur_rect});
+      _pushInterval(dx, dy);
     }
 
     vector<int>& get_jpts() { return jpts_; }
@@ -86,18 +90,20 @@ class rect_jump_point_locator
     vector<int> jpts_;
     vector<cost_t> costs_;
 
-    bool _find_jpt(
-        Rect* cur_rect, eposition cure, int curx, int cury, 
+    struct Interval {
+      int lb, ub;
+      Rect* r;
+    };
+    queue<Interval> intervals;
+
+    bool _find_jpt(Rect* cur_rect, eposition cure, int curx, int cury, 
         int dx, int dy, int& node_id);
 
-    void _scanDiag(
-        int& curx, int& cury, Rect* cur_rect, int dx, int dy); 
+    // void _scanDiag(int node_id, Rect* cur_rect, int dx, int dy);
 
-    void _scanInterval(
-        int lb, int ub, Rect* cur_rect, int dx, int dy);
+    void _pushInterval(int dx, int dy);
 
-    void _scan(
-        int node_id, Rect* cur_rect, int dx, int dy);
+    void _scan(int node_id, Rect* cur_rect, int dx, int dy);
 
 };
 

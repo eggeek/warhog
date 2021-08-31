@@ -306,6 +306,7 @@ class RectMap {
   }
 
   inline int get_rid(int x, int y) {
+    if (x < 0 || x >= mapw || y < 0 || y >= maph) return -1;
     return idmap[y * mapw + x];
   }
 

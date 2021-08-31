@@ -13,6 +13,10 @@
 namespace TEST_RECT {
   using namespace warthog::rectscan;
   using namespace std;
+  const vector<string> desc = {
+    "NORTH", "SOUTH", "EAST", "WEST",
+    "NORTHEAST", "NORTHWEST", "SOUTHEAST", "SOUTHWEST"
+  };
 
   TEST_CASE("gen") {
     vector<pair<string, string>> cases = {
@@ -102,10 +106,13 @@ namespace TEST_RECT {
       for (int x=0; x<rectmap.mapw; x++) {
         for (int y=0; y<rectmap.maph; y++) {
           warthog::jps::direction dir = (warthog::jps::direction)(1<<d);
-          // cout << "x: " << x << ", y: " << y << " d: " << dir << endl;
           int padded_nid = gmap->to_padded_id(x, y);
           if (gmap->get_label(padded_nid) == 0) continue;
           Rect* r = rectmap.get_rect(x, y);
+
+          // cout << "id: " << r->rid << ", x: " << x << ", y: " << y
+          //      << " d: " << d << " " << desc[d] << endl;
+
           jpts2.clear(); costs2.clear();
           jpl2->jump(dir, padded_nid, warthog::INF, jpts2, costs2);
 
@@ -128,7 +135,6 @@ namespace TEST_RECT {
       "../maps/rooms/64room_000.map",
       "../maps/starcraft/CatwalkAlley.map"
     };
-    vector<string> desc = {"NORTH", "SOUTH", "EAST", "WEST"};
     for (auto &each: cases) {
       string rectfile = each;
       cout << "map:" << rectfile << endl; 
@@ -148,7 +154,7 @@ namespace TEST_RECT {
           int dx = warthog::dx[d];
           int dy = warthog::dy[d];
           int lb, ub, ax;
-          eposition cure = r2e.at({dx, dy, rdirect::F});
+          eposition cure = r2e.at({dx, dy, rdirect::B});
           it.get_range(cure, lb, ub);
           ax = it.axis(cure);
           jpts2.clear(); costs2.clear();
