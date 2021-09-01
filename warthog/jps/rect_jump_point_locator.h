@@ -44,17 +44,17 @@ class rect_jump_point_locator
         case jps::WEST:
           _scan(node_id, rect, -1, 0);
           break;
-        // case jps::NORTHEAST:
-        //   _scanDiag(node_id, rect, 1, -1);
-        //   break;
-        // case jps::NORTHWEST:
-        //   _scanDiag(node_id, rect, -1, -1);
-        //   break;
-        // case jps::SOUTHEAST:
-        //   _scanDiag(node_id, rect, 1, 1);
-        //   break;
-        // case jps::SOUTHWEST:
-        //   _scanDiag(node_id, rect, -1, 1);
+        case jps::NORTHEAST:
+          _scanDiag(node_id, rect, 1, -1);
+          break;
+        case jps::NORTHWEST:
+          _scanDiag(node_id, rect, -1, -1);
+          break;
+        case jps::SOUTHEAST:
+          _scanDiag(node_id, rect, 1, 1);
+          break;
+        case jps::SOUTHWEST:
+          _scanDiag(node_id, rect, -1, 1);
           break;
         default:
           break;
@@ -99,7 +99,11 @@ class rect_jump_point_locator
     bool _find_jpt(Rect* cur_rect, eposition cure, int curx, int cury, 
         int dx, int dy, int& node_id);
 
-    // void _scanDiag(int node_id, Rect* cur_rect, int dx, int dy);
+    void _scanDiag(int node_id, Rect* cur_rect, int dx, int dy); 
+
+    bool _scanLR(Rect* r, int curx, int cury, int dx, int dy);
+
+    void _pushIntervalF(Rect* r, int lb, int ub, int dx, int dy);
 
     void _pushInterval(int dx, int dy);
 

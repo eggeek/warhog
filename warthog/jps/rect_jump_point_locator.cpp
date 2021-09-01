@@ -169,13 +169,79 @@ bool rectlocator::_find_jpt(Rect* cur_rect, eposition cure,
   return res;
 }
 
-// interval [lb, ub], in rectangle
-void rectlocator::_pushInterval(int dx, int dy) {
-  int ax, curx, cury, lb, ub;
-  eposition cure;
+void rectlocator::_scanDiag(
+  int node_id, Rect* rect, int dx, int dy) {
+  int curx, cury;
+  map_->to_xy(node_id, curx, cury);
 
-  auto pushLR= [&](Rect*r, int bf, int lr) {
-    curx = dx? bf: lr, cury = dx? lr: bf;
+  int vertD, horiD, d;
+
+  while (true) {
+    // move one step
+    if (map_->get_rid(curx+dx, cury) != -1 &&
+        map_->get_rid(curx, cury+dy) != -1 &&
+        map_->get_rid(curx+dx, cury+dy) != -1) {
+      curx += dx, cury += dy;
+      node_id += map_->mapw * dy + dx;
+      rect = map_->get_rect(curx, cury);
+    }
+    else break;
+
+    vertD = rect->disF(0, dy, curx, cury);
+    horiD = rect->disF(dx, 0, curx, cury);
+    d  = min(vertD, horiD);
+
+    int xlb=curx, xub=curx+d*dx, ylb=cury, yub=cury+d*dy;
+    if (dx<0) swap(xlb, xub);
+    if (dy<0) swap(ylb, yub);
+    // try to move interval (xlb, xub) to the front, 
+    // find jpt if the path is on L/R border
+    if (_scanLR(rect, curx, cury, 0, dy))
+      dx>0?xlb++: xub--;
+    // try to move interval (ylb, yub) to the front
+    // find jpt if the path is on L/R border
+    if (_scanLR(rect, curx, cury, dx, 0))
+      dy>0?ylb++: yub--;
+
+    curx += dx*d;
+    cury += dy*d;
+    node_id += map_->mapw * d*dy + d*dx;
+
+    // scan on border
+    if (d > 0) {
+      if (vertD >= horiD) {
+        int node_id = INF;
+        if (_find_jpt(rect, dx>0?eposition::E: eposition::W, 
+                      curx, cury, 0, dy, node_id)) {
+          jpts_.push_back(node_id);
+          dx>0?xub--: xlb++;
+        }
+      }
+      if (horiD >= vertD) {
+        int node_id = INF;
+        if (_find_jpt(rect, dy>0?eposition::S: eposition::N, 
+                      curx, cury, dx, 0, node_id)) {
+          jpts_.push_back(node_id);
+          dy>0?yub--: ylb++;
+        }
+      }
+    }
+    
+    if (xlb <= xub) {
+      assert(intervals.size() == 0);
+      _pushIntervalF(rect, xlb, xub, 0, dy);
+      _pushInterval(0, dy);
+    }
+
+    if (ylb <= yub) {
+      assert(intervals.size() == 0);
+      _pushIntervalF(rect, ylb, yub, dx, 0);
+      _pushInterval(dx, 0);
+    }
+  }
+}
+
+inline bool rectlocator::_scanLR(Rect* r, int curx, int cury, int dx, int dy) {
     int node_id = INF;
     bool onL = r->disLR(rdirect::L, dx, dy, curx, cury) == 0;
     bool onR = r->disLR(rdirect::R, dx, dy, curx, cury) == 0;
@@ -188,21 +254,10 @@ void rectlocator::_pushInterval(int dx, int dy) {
     return false;
   };
 
-  while (!intervals.empty()) {
-    Interval c = intervals.front(); intervals.pop();
-    if (c.lb > c.ub) continue;
-    lb = c.lb, ub = c.ub;
-    cure = r2e.at({dx, dy, rdirect::B});
-    ax = c.r->axis(cure);
-    // is lb on L/R border
-    if (pushLR(c.r, ax, lb)) 
-      lb++;
-    if (c.lb != c.ub && pushLR(c.r, ax, ub))
-      ub--;
-
+inline void rectlocator::_pushIntervalF(Rect* r, int lb, int ub, int dx, int dy) {
     // interval is on F border now
-    cure = r2e.at({dx, dy, rdirect::F});
-    for (int rid: c.r->adj[cure]) {
+    eposition cure = r2e.at({dx, dy, rdirect::F});
+    for (int rid: r->adj[cure]) {
       Rect* r = &(map_->rects[rid]);
       int rL, rR, hori, vertL, vertR;
       r->get_range(cure, rL, rR);
@@ -210,15 +265,34 @@ void rectlocator::_pushInterval(int dx, int dy) {
       hori = r->axis(r2e.at({dx, dy, rdirect::B}));
       vertL = r->axis(dx?eposition::N: eposition::W);
       if (lb <= vertL && vertL <= ub) {
-        if (pushLR(r, hori, vertL))
+        if (_scanLR(r, dx?hori: vertL, dx?vertL: hori, dx, dy))
           rL++;
       }
       vertR = r->axis(dx?eposition::S: eposition::E);
       if (vertL != vertR && lb <= vertR && vertR <= ub) {
-        if (pushLR(r, hori, vertR))
+        if (_scanLR(r, dx?hori:vertR, dx?vertR:hori, dx, dy))
           rR--;
       }
       intervals.push({max(rL, lb), min(rR, ub), r});
     }
+}
+
+// interval [lb, ub] in rectangle at B border
+void rectlocator::_pushInterval(int dx, int dy) {
+  int ax, lb, ub;
+
+  while (!intervals.empty()) {
+    Interval c = intervals.front(); intervals.pop();
+    if (c.lb > c.ub) continue;
+    lb = c.lb, ub = c.ub;
+    eposition cure = r2e.at({dx, dy, rdirect::B});
+    ax = c.r->axis(cure);
+    // is lb on L/R border
+    if (_scanLR(c.r, dx?ax: lb, dx?lb: ax, dx, dy)) 
+      lb++;
+    if (c.lb != c.ub && _scanLR(c.r, dx?ax: ub, dx?ub: ax, dx, dy))
+      ub--;
+    if (lb <= ub)
+      _pushIntervalF(c.r, lb, ub, dx, dy);
   }
 }

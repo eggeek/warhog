@@ -102,7 +102,7 @@ namespace TEST_RECT {
       vector<int> jpts; 
       vector<uint32_t> jpts2;
       vector<warthog::cost_t> costs2;
-      for (int d=0; d<4; d++)
+      for (int d=0; d<8; d++)
       for (int x=0; x<rectmap.mapw; x++) {
         for (int y=0; y<rectmap.maph; y++) {
           warthog::jps::direction dir = (warthog::jps::direction)(1<<d);
