@@ -7,10 +7,6 @@
 typedef warthog::rectscan::rect_jump_point_locator rectlocator;
 using namespace std;
 
-inline int manhatan_dis(int x0, int y0, int x1, int y1) {
-  return max(x0, x1) - min(x0, x1) + max(y0, y1) - min(y0, y1);
-}
-
 void rectlocator::_scan(int node_id, Rect* cur_rect, int dx, int dy) {
 
   rdirect curp;
@@ -53,6 +49,11 @@ void rectlocator::_scan(int node_id, Rect* cur_rect, int dx, int dy) {
   curp = e2r.at({dx, dy, cure});
 
   while (true) {
+    // when the cur rect contains the goal
+    if (cur_rect->rid == _goal_rid) {
+      jpts_.push_back(_encode_pdir(map_->to_id(curx, cury), dx, dy));
+      break;
+    }
     switch (curp) {
       // base case
       // on verticle border
@@ -61,7 +62,7 @@ void rectlocator::_scan(int node_id, Rect* cur_rect, int dx, int dy) {
       {
         bool res = _find_jpt(cur_rect, cure, curx, cury, dx, dy, jpid);
         if (res) {
-          jpts_.push_back(jpid);
+          jpts_.push_back(_encode_pdir((uint32_t)jpid, dx, dy));
           return;
         }
       }
@@ -128,7 +129,7 @@ bool rectlocator::_find_jpt(Rect* cur_rect, eposition cure,
   if (it != jpts->end()) {
     node_id = *it;
     map_->to_xy(node_id, x, y);
-    cost = manhatan_dis(curx, cury, x, y) * ONE;
+    cost = octile_dist(curx, cury, x, y);
     res = true;
   }
   // if the rect is a line (or dot)
@@ -137,7 +138,7 @@ bool rectlocator::_find_jpt(Rect* cur_rect, eposition cure,
     find(eposition(cure^2));
     if (it != jpts->end()) {
       map_->to_xy(*it, x, y);
-      cost_t new_cost = manhatan_dis(curx, cury, x, y) * ONE;
+      cost_t new_cost = octile_dist(curx, cury, x, y);
       if (new_cost < cost) {
         node_id = *it;
         cost = new_cost;
@@ -187,6 +188,12 @@ void rectlocator::_scanDiag(
     }
     else break;
 
+    // if reach the rect that contains the goal
+    if (rect->rid == _goal_rid) {
+      jpts_.push_back(_encode_pdir(map_->to_id(curx, cury), dx, dy));
+      break;
+    }
+
     vertD = rect->disF(0, dy, curx, cury);
     horiD = rect->disF(dx, 0, curx, cury);
     d  = min(vertD, horiD);
@@ -213,7 +220,7 @@ void rectlocator::_scanDiag(
         int node_id = INF;
         if (_find_jpt(rect, dx>0?eposition::E: eposition::W, 
                       curx, cury, 0, dy, node_id)) {
-          jpts_.push_back(node_id);
+          jpts_.push_back(_encode_pdir((uint32_t)node_id, 0, dy));
           dx>0?xub--: xlb++;
         }
       }
@@ -221,7 +228,7 @@ void rectlocator::_scanDiag(
         int node_id = INF;
         if (_find_jpt(rect, dy>0?eposition::S: eposition::N, 
                       curx, cury, dx, 0, node_id)) {
-          jpts_.push_back(node_id);
+          jpts_.push_back(_encode_pdir((uint32_t)node_id, dx, 0));
           dy>0?yub--: ylb++;
         }
       }
@@ -247,21 +254,47 @@ inline bool rectlocator::_scanLR(Rect* r, int curx, int cury, int dx, int dy) {
     bool onR = r->disLR(rdirect::R, dx, dy, curx, cury) == 0;
     if ( onL || onR) {
       if (_find_jpt(r, r2e.at({dx, dy, onL?rdirect::L: rdirect::R}), curx, cury, dx, dy, node_id)) {
-        jpts_.push_back(node_id);
+        jpts_.push_back(_encode_pdir((uint32_t)node_id, dx, dy));
         return true;
       }
     }
     return false;
   };
 
-inline void rectlocator::_pushIntervalF(Rect* r, int lb, int ub, int dx, int dy) {
+inline void rectlocator::_pushIntervalF(Rect* curr, int lb, int ub, int dx, int dy) {
     // interval is on F border now
     eposition cure = r2e.at({dx, dy, rdirect::F});
-    for (int rid: r->adj[cure]) {
+    for (int rid: curr->adj[cure]) {
+      // the adjacent rect contains the goal
       Rect* r = &(map_->rects[rid]);
-      int rL, rR, hori, vertL, vertR;
+
+      int rL=0, rR=0, hori, vertL, vertR;
       r->get_range(cure, rL, rR);
       if (rL > ub || rR < lb) continue;
+      rL = max(rL, lb); 
+      rR = min(rR, ub);
+
+      if (rid == _goal_rid) {
+        rL = max(rL, lb);
+        rR = min(rR, ub);
+        int ax = r->axis(r2e.at({dx, dy, rdirect::B}));
+        int x, y;
+        if (dx == 0) {
+          y = ax;
+          if (rL <= _goalx && _goalx <= rR) x=_goalx;
+          else if (rL > _goalx) x=rL;
+          else x=rR;
+        }
+        else {
+          x = ax;
+          if (rL <= _goaly && _goaly <= rR) y=_goaly;
+          else if (rL > _goaly) y=rL;
+          else y=rR;
+        }
+        jpts_.push_back(_encode_pdir(map_->to_id(x, y), dx, dy));
+        continue;
+      }
+
       hori = r->axis(r2e.at({dx, dy, rdirect::B}));
       vertL = r->axis(dx?eposition::N: eposition::W);
       if (lb <= vertL && vertL <= ub) {
@@ -273,7 +306,8 @@ inline void rectlocator::_pushIntervalF(Rect* r, int lb, int ub, int dx, int dy)
         if (_scanLR(r, dx?hori:vertR, dx?vertR:hori, dx, dy))
           rR--;
       }
-      intervals.push({max(rL, lb), min(rR, ub), r});
+      if (rL <= rR)
+        intervals.push({rL, rR, r});
     }
 }
 

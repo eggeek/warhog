@@ -235,6 +235,10 @@ class RectMap {
 
   inline const char* filename() { return this->_filename.c_str();}
 
+  inline void get_neighbours(uint32_t id, uint8_t tiles[3]) {
+    gmap.get_neighbours(gmap.to_padded_id(id), tiles);
+  }
+
   inline int get_adj_rect(const Rect* r, const int& eid, const int& pos) const {
     // when edge is horizontal, pos is x axis, otherwise pos is y axis
     int lb, ub;
@@ -312,6 +316,10 @@ class RectMap {
 
   inline Rect* get_rect(int x, int y) {
     return &(rects[idmap[y * mapw + x]]);
+  }
+
+  inline Rect* get_rect(int id) {
+    return &(rects[idmap[id]]);
   }
 
   private:

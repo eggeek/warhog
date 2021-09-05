@@ -51,7 +51,7 @@ class rect_expansion_policy
 		{
 			which_ = 0;
 			ret = neighbours_[which_];
-			cost = costs_[which_];
+			cost = jpl_->get_costs()[which_];
 		}
 
 		inline bool
@@ -65,7 +65,7 @@ class rect_expansion_policy
 		n(search_node*& ret, cost_t& cost)
 		{
 			ret = neighbours_[which_];
-			cost = costs_[which_];
+			cost = jpl_->get_costs()[which_];
 		}
 
 		inline void
@@ -76,7 +76,7 @@ class rect_expansion_policy
 				which_++;
 			}
 			ret = neighbours_[which_];
-			cost = costs_[which_];
+			cost = jpl_->get_costs()[which_];
 		}
 
 		inline uint32_t
@@ -102,8 +102,6 @@ class rect_expansion_policy
 		uint32_t which_;
 		uint32_t num_neighbours_;
 		vector<search_node*> neighbours_;
-		vector<cost_t> costs_;
-		vector<uint32_t> jp_ids_;
 
 		inline void
 		reset()
@@ -111,8 +109,7 @@ class rect_expansion_policy
 			which_ = 0;
 			num_neighbours_ = 0;
 			neighbours_.clear();
-			costs_.clear();
-			jp_ids_.clear();
+      jpl_->reset();
 		}
 
 };
