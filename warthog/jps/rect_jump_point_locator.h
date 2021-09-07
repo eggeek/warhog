@@ -38,7 +38,7 @@ class rect_jump_point_locator
       jpts_.reserve(1<<7);
       costs_.reserve(1<<7);
     };
-    int scan_cnt;
+    int scan_cnt = 0;
 
 		void
 		jump(jps::direction d, int node_id, int goal_id, Rect* rect) {

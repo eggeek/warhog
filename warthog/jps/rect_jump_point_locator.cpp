@@ -54,6 +54,7 @@ void rectlocator::_scan(int node_id, Rect* cur_rect, int dx, int dy) {
       jpts_.push_back(_encode_pdir(map_->to_id(curx, cury), dx, dy));
       break;
     }
+    this->scan_cnt++;
     switch (curp) {
       // base case
       // on verticle border
@@ -178,6 +179,7 @@ void rectlocator::_scanDiag(
   int vertD, horiD, d;
 
   while (true) {
+    this->scan_cnt++;
     // move one step
     if (map_->get_rid(curx+dx, cury) != -1 &&
         map_->get_rid(curx, cury+dy) != -1 &&
@@ -264,13 +266,32 @@ inline bool rectlocator::_scanLR(Rect* r, int curx, int cury, int dx, int dy) {
 inline void rectlocator::_pushIntervalF(Rect* curr, int lb, int ub, int dx, int dy) {
     // interval is on F border now
     eposition cure = r2e.at({dx, dy, rdirect::F});
-    for (int rid: curr->adj[cure]) {
+    eposition nxte = r2e.at({dx, dy, rdirect::B});
+
+    auto bs = [&]() {
+      int s=0, t=curr->adj[cure].size()-1, l=0, r=0;
+      int best=t+1;
+
+      while (s<=t) {
+        int m = (s+t)>>1;
+        map_->rects[curr->adj[cure][m]].get_range(nxte, l, r);
+        if (r < lb) s=m+1;
+        else {
+          best = m;
+          t=m-1;
+        }
+      }
+      return best;
+    };
+    int sidx = bs();
+    for (int i=sidx; i<(int)curr->adj[cure].size(); i++) {
+      int rid = curr->adj[cure][i];
       // the adjacent rect contains the goal
       Rect* r = &(map_->rects[rid]);
 
       int rL=0, rR=0, hori, vertL, vertR;
       r->get_range(cure, rL, rR);
-      if (rL > ub || rR < lb) continue;
+      if (rL > ub) break;
       rL = max(rL, lb); 
       rR = min(rR, ub);
 
@@ -316,6 +337,7 @@ void rectlocator::_pushInterval(int dx, int dy) {
   int ax, lb, ub;
 
   while (!intervals.empty()) {
+    this->scan_cnt++;
     Interval c = intervals.front(); intervals.pop();
     if (c.lb > c.ub) continue;
     lb = c.lb, ub = c.ub;
