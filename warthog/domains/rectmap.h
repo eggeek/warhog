@@ -116,7 +116,7 @@ class Rect {
   int rid,              // id of this rectangle
       x, y,             // top-left corner of the rect
       h, w;             // shape of the rect
-  vector<int> adj[4];   // adj[i] stores adjacent rects of edge i
+  vector<int> adj[4];   // adj rects ids of edge i, in top-down-left-right (increase) order
   vector<int> jptf[4];  // jump points in "forward" direction (top-down, left-right)
   vector<int> jptr[4];  // jump points in "reverse" direction (down-top, right-left)
 
