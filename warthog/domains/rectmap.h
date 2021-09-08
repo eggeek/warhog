@@ -119,6 +119,7 @@ class Rect {
   vector<int> adj[4];   // adj rects ids of edge i, in top-down-left-right (increase) order
   vector<int> jptf[4];  // jump points in "forward" direction (top-down, left-right)
   vector<int> jptr[4];  // jump points in "reverse" direction (down-top, right-left)
+  vector<int> mark[4];  // mark nodes on the border of rect
 
   inline eposition pos(const int& px, const int& py) const {
     if (py == y) return eposition::N;
@@ -126,6 +127,46 @@ class Rect {
     if (py == y+h-1) return eposition::S;
     if (px == x) return eposition::W;
     return eposition::I;
+  }
+
+  inline int get_mark(int pos, eposition cure) {
+    switch (cure) {
+      case eposition::N:
+      case eposition::S:
+        pos -= x;
+        break;
+      case eposition::W:
+      case eposition::E:
+        pos -= y;
+        break;
+      default:
+        return -1;
+    }
+    if (pos >= 0 && pos < (int)mark[(int)cure].size()) 
+      return mark[(int)cure][pos];
+    else
+      return -1;
+  }
+
+  inline void set_mark(int pos, eposition cure, int v) {
+    if (pos < 0) return;
+    switch (cure) {
+      case eposition::N:
+      case eposition::S:
+        pos -= x;
+        break;
+      case eposition::W:
+      case eposition::E:
+        pos -= y;
+        break;
+      default:
+        break;
+    }
+    if (pos < (int)mark[(int)cure].size()) {
+      // cerr << "mark rect: " << this->rid << ", e: " << cure
+      //      << ", at: " << ((cure&1)?pos+y:pos+x) << " value: " << v << endl;
+      mark[(int)cure][pos] = v;
+    }
   }
 
   // return axis of an edge

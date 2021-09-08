@@ -1,5 +1,6 @@
 #include "rectmap.h"
 #include "grid2rect.h"
+#include <vector>
 
 typedef warthog::rectscan::RectMap rmap;
 
@@ -151,6 +152,11 @@ void rmap::init_rects() {
     r.y = fr.y;
     r.h = fr.height;
     r.w = fr.width;
+
+    r.mark[(int)eposition::N] = vector<int>(r.w, -1);
+    r.mark[(int)eposition::S] = vector<int>(r.w, -1);
+    r.mark[(int)eposition::W] = vector<int>(r.h, -1);
+    r.mark[(int)eposition::E] = vector<int>(r.h, -1);
 
     for (int j=0; j<4; j++) {
       r.adj[j].clear();

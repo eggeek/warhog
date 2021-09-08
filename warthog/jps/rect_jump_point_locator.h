@@ -43,6 +43,8 @@ class rect_jump_point_locator
 		void
 		jump(jps::direction d, int node_id, int goal_id, Rect* rect) {
 
+      assert(intervals_h.empty());
+      assert(intervals_v.empty());
       cur_node_id_ = node_id;
       map_->to_xy(cur_node_id_, _curx, _cury);
       if (cur_goal_id_ != goal_id) {
@@ -89,22 +91,24 @@ class rect_jump_point_locator
         map_->to_xy(jpts_[i] & IDMASK, x, y);
         costs_[i] = octile_dist(x, y, _curx, _cury);
       }
+      if (!intervals_h.empty())
+        _clearInterval(intervals_h, 0, warthog::dy[jps::d2i(d)]);
+      if (!intervals_v.empty())
+        _clearInterval(intervals_v, dx[jps::d2i(d)], 0);
+      assert(intervals_h.empty());
+      assert(intervals_v.empty());
     }
 
 		int mem() { return sizeof(this); }
 
     void scanInterval(int lb, int ub, Rect* cur_rect, int dx, int dy) {
 
-      // eposition cure = r2e.at({dx, dy, rdirect::F});
-      // int ax = cur_rect->axis(cure);
-      // _scan(map_->to_id(dx?ax: lb, dx?lb: ax), cur_rect, dx, dy);
-      // if (ub != lb) {
-      //   _scan(map_->to_id(dx?ax: ub, dx?ub: ax), cur_rect, dx, dy);
-      //   _scanInterval(lb+1, ub-1, cur_rect, dx, dy);
-      // }
-      while (!intervals.empty()) intervals.pop();
+      queue<Interval> &intervals = dx? intervals_v: intervals_h;
+      _clearInterval(intervals, dx, dy);
+      cur_rect->set_mark(lb, r2e.at({dx, dy, rdirect::B}), ub);
+      cur_rect->set_mark(ub, r2e.at({dx, dy, rdirect::B}), lb);
       intervals.push({lb, ub, cur_rect});
-      _pushInterval(dx, dy);
+      _pushInterval(intervals, dx, dy);
     }
 
     vector<uint32_t>& get_jpts() { return jpts_; }
@@ -130,7 +134,7 @@ class rect_jump_point_locator
       int lb, ub;
       Rect* r;
     };
-    queue<Interval> intervals;
+    queue<Interval> intervals_h, intervals_v;
 
     bool _find_jpt(Rect* cur_rect, eposition cure, int curx, int cury, 
         int dx, int dy, int& node_id);
@@ -139,9 +143,10 @@ class rect_jump_point_locator
 
     bool _scanLR(Rect* r, int curx, int cury, int dx, int dy);
 
-    void _pushIntervalF(Rect* r, int lb, int ub, int dx, int dy);
+    void _pushIntervalF(queue<Interval>& intervals, Rect* r, int lb, int ub, int dx, int dy);
+    void _pushInterval(queue<Interval>& intervals, int dx, int dy);
 
-    void _pushInterval(int dx, int dy);
+    void _clearInterval(queue<Interval>& intvs, int dx, int dy);
 
     void _scan(int node_id, Rect* cur_rect, int dx, int dy);
 

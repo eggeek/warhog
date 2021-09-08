@@ -2,6 +2,7 @@
 #include "constants.h"
 #include <algorithm>
 #include <cstdint>
+#include <queue>
 #include <vector>
 
 typedef warthog::rectscan::rect_jump_point_locator rectlocator;
@@ -171,12 +172,25 @@ bool rectlocator::_find_jpt(Rect* cur_rect, eposition cure,
   return res;
 }
 
+void rectlocator::_clearInterval(queue<Interval>& intvs, int dx, int dy) {
+  eposition cure = r2e.at({dx, dy, rdirect::B});
+  while (!intvs.empty()) {
+    Interval& c = intvs.front(); 
+    c.r->set_mark(c.lb, cure, -1);
+    c.r->set_mark(c.ub, cure, -1);
+    intvs.pop();
+  }
+}
+
 void rectlocator::_scanDiag(
   int node_id, Rect* rect, int dx, int dy) {
   int curx, cury;
   map_->to_xy(node_id, curx, cury);
 
   int vertD, horiD, d;
+
+  assert(intervals_h.size() == 0);
+  assert(intervals_v.size() == 0);
 
   while (true) {
     this->scan_cnt++;
@@ -236,18 +250,14 @@ void rectlocator::_scanDiag(
       }
     }
     
-    if (xlb <= xub) {
-      assert(intervals.size() == 0);
-      _pushIntervalF(rect, xlb, xub, 0, dy);
-      _pushInterval(0, dy);
-    }
+    if (xlb <= xub)
+      _pushIntervalF(intervals_h, rect, xlb, xub, 0, dy);
 
-    if (ylb <= yub) {
-      assert(intervals.size() == 0);
-      _pushIntervalF(rect, ylb, yub, dx, 0);
-      _pushInterval(dx, 0);
-    }
+    if (ylb <= yub)
+      _pushIntervalF(intervals_v, rect, ylb, yub, dx, 0);
   }
+  _pushInterval(intervals_h, 0, dy);
+  _pushInterval(intervals_v, dx, 0);
 }
 
 inline bool rectlocator::_scanLR(Rect* r, int curx, int cury, int dx, int dy) {
@@ -263,7 +273,8 @@ inline bool rectlocator::_scanLR(Rect* r, int curx, int cury, int dx, int dy) {
     return false;
   };
 
-inline void rectlocator::_pushIntervalF(Rect* curr, int lb, int ub, int dx, int dy) {
+inline void rectlocator::_pushIntervalF(
+    queue<Interval>& intervals, Rect* curr, int lb, int ub, int dx, int dy) {
     // interval is on F border now
     eposition cure = r2e.at({dx, dy, rdirect::F});
     eposition nxte = r2e.at({dx, dy, rdirect::B});
@@ -298,7 +309,7 @@ inline void rectlocator::_pushIntervalF(Rect* curr, int lb, int ub, int dx, int 
       if (rid == _goal_rid) {
         rL = max(rL, lb);
         rR = min(rR, ub);
-        int ax = r->axis(r2e.at({dx, dy, rdirect::B}));
+        int ax = r->axis(nxte);
         int x, y;
         if (dx == 0) {
           y = ax;
@@ -316,7 +327,7 @@ inline void rectlocator::_pushIntervalF(Rect* curr, int lb, int ub, int dx, int 
         continue;
       }
 
-      hori = r->axis(r2e.at({dx, dy, rdirect::B}));
+      hori = r->axis(nxte);
       vertL = r->axis(dx?eposition::N: eposition::W);
       if (lb <= vertL && vertL <= ub) {
         if (_scanLR(r, dx?hori: vertL, dx?vertL: hori, dx, dy))
@@ -327,21 +338,55 @@ inline void rectlocator::_pushIntervalF(Rect* curr, int lb, int ub, int dx, int 
         if (_scanLR(r, dx?hori:vertR, dx?vertR:hori, dx, dy))
           rR--;
       }
-      if (rL <= rR)
+      if (rL <= rR) {
+        assert(r->get_mark(rL, nxte) == -1);
+        assert(r->get_mark(rR, nxte) == -1);
+        r->set_mark(rL, nxte, rR);
+        r->set_mark(rR, nxte, rL);
         intervals.push({rL, rR, r});
+      }
     }
 }
 
 // interval [lb, ub] in rectangle at B border
-void rectlocator::_pushInterval(int dx, int dy) {
+void rectlocator::_pushInterval(queue<Interval>& intervals, int dx, int dy) {
   int ax, lb, ub;
+  eposition cure = r2e.at({dx, dy, rdirect::B});
 
   while (!intervals.empty()) {
-    this->scan_cnt++;
     Interval c = intervals.front(); intervals.pop();
-    if (c.lb > c.ub) continue;
+    // if this is merged with others
+    if (c.r->get_mark(c.lb, cure) != c.ub ||
+        c.r->get_mark(c.ub, cure) != c.lb) continue;
     lb = c.lb, ub = c.ub;
-    eposition cure = r2e.at({dx, dy, rdirect::B});
+    // remove mark of interval [lb, ub]
+    c.r->set_mark(lb, cure, -1);
+    c.r->set_mark(ub, cure, -1);
+    bool merged = false;
+    // merge with next(right/down) interval
+    if (c.r->get_mark(ub+1, cure) != -1) {
+      // merge [lb, ub] with [ub+1, newub]
+      int newub = c.r->get_mark(ub+1, cure);
+      c.r->set_mark(ub+1, cure, -1);
+      c.r->set_mark(newub, cure, -1);
+      ub = newub;
+      merged = true;
+    }
+    if (c.r->get_mark(lb-1, cure) != -1) {
+      // merge [lb, ub] with [newlb, lb-1];
+      int newlb = c.r->get_mark(lb-1, cure);
+      c.r->set_mark(lb-1, cure, -1);
+      c.r->set_mark(newlb, cure, -1);
+      lb = newlb;
+      merged = true;
+    }
+    if (merged) {
+      c.r->set_mark(lb, cure, ub);
+      c.r->set_mark(ub, cure, lb);
+      intervals.push({lb, ub, c.r});
+      continue;
+    }
+    this->scan_cnt++;
     ax = c.r->axis(cure);
     // is lb on L/R border
     if (_scanLR(c.r, dx?ax: lb, dx?lb: ax, dx, dy)) 
@@ -349,6 +394,6 @@ void rectlocator::_pushInterval(int dx, int dy) {
     if (c.lb != c.ub && _scanLR(c.r, dx?ax: ub, dx?ub: ax, dx, dy))
       ub--;
     if (lb <= ub)
-      _pushIntervalF(c.r, lb, ub, dx, dy);
+      _pushIntervalF(intervals, c.r, lb, ub, dx, dy);
   }
 }
