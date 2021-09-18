@@ -91,10 +91,6 @@ class rect_jump_point_locator
         map_->to_xy(jpts_[i] & IDMASK, x, y);
         costs_[i] = octile_dist(x, y, _curx, _cury);
       }
-      if (!intervals_h.empty())
-        _clearInterval(intervals_h, 0, warthog::dy[jps::d2i(d)]);
-      if (!intervals_v.empty())
-        _clearInterval(intervals_v, dx[jps::d2i(d)], 0);
       assert(intervals_h.empty());
       assert(intervals_v.empty());
     }
@@ -104,7 +100,6 @@ class rect_jump_point_locator
     void scanInterval(int lb, int ub, Rect* cur_rect, int dx, int dy) {
 
       queue<Interval> &intervals = dx? intervals_v: intervals_h;
-      _clearInterval(intervals, dx, dy);
       cur_rect->set_mark(lb, r2e.at({dx, dy, rdirect::B}), ub);
       cur_rect->set_mark(ub, r2e.at({dx, dy, rdirect::B}), lb);
       intervals.push({lb, ub, cur_rect});
@@ -143,10 +138,8 @@ class rect_jump_point_locator
 
     bool _scanLR(Rect* r, int curx, int cury, int dx, int dy);
 
-    void _pushIntervalF(queue<Interval>& intervals, Rect* r, int lb, int ub, int dx, int dy);
+    void _pushIntervalF(queue<Interval>& intervals, Rect* r, Rect* nxt, int& lb, int& ub, int dx, int dy);
     void _pushInterval(queue<Interval>& intervals, int dx, int dy);
-
-    void _clearInterval(queue<Interval>& intvs, int dx, int dy);
 
     void _scan(int node_id, Rect* cur_rect, int dx, int dy);
 
