@@ -281,16 +281,21 @@ inline bool rectlocator::_scanLR(Rect* r, int curx, int cury, int dx, int dy) {
     return false;
   };
 
-// precondition: 
+// Precondition:
 // interval [lb, ub] is on F border of curr
 // push [lb, ub] in forward direction,
 // push adjacent intervals to FIFO
 // nxtr is the next rect ptr in (dx, dy)
 // if nxtr is not nullptr, 
 // the `adjacent` interval in nxtr wouldn't be pushed to FIFO
-// instead, it will update lb and ub
-// postcondition: [lb, ub] is in the nxtr if exist, 
+// instead, it will update lb and ub, 
+// so that [lb, ub] can be projected in the next diagonal move
+//
+// Postcondition: [lb, ub] is in the nxtr if exist, 
 // otherwise set to INF.
+//
+// Optimisation: keep pushing if there is only one interval, 
+// such behavior is controled by `found`
 inline void rectlocator::_pushIntervalF(
     queue<Interval>& intervals, Rect* curr, Rect* nxtr, 
     int &lb, int &ub, int dx, int dy) {
@@ -298,7 +303,9 @@ inline void rectlocator::_pushIntervalF(
   // interval is on F border now
   eposition cure = r2e.at({dx, dy, rdirect::F});
   eposition nxte = r2e.at({dx, dy, rdirect::B});
-  int newLb=INF, newUb=INF;
+  int newLb=INF, newUb=INF, nxtL=INF, nxtU=INF;
+  bool flag = true, found = false;
+  Rect* nxtRect = nullptr;
 
   auto bs = [&]() {
     int s=0, t=curr->adj[cure].size()-1, l=0, r=0;
@@ -315,59 +322,78 @@ inline void rectlocator::_pushIntervalF(
     }
     return best;
   };
-  int sidx = bs();
-  for (int i=sidx; i<(int)curr->adj[cure].size(); i++) {
-    int rid = curr->adj[cure][i];
-    // the adjacent rect contains the goal
-    Rect* r = &(map_->rects[rid]);
+  while (flag) {
+    if (found) {
+      lb = nxtL, ub = nxtU, curr = nxtRect;
+      found = false;
+      this->scan_cnt++;
+    }
+    int sidx = bs();
+    for (int i=sidx; i<(int)curr->adj[cure].size(); i++) {
+      int rid = curr->adj[cure][i];
+      // the adjacent rect contains the goal
+      Rect* r = &(map_->rects[rid]);
 
-    int rL=0, rR=0, hori, vertL, vertR;
-    r->get_range(cure, rL, rR);
-    if (rL > ub) break;
-    rL = max(rL, lb); 
-    rR = min(rR, ub);
-
-    if (rid == _goal_rid) {
-      rL = max(rL, lb);
+      int rL=0, rR=0, hori, vertL, vertR;
+      r->get_range(cure, rL, rR);
+      if (rL > ub) break;
+      rL = max(rL, lb); 
       rR = min(rR, ub);
-      int ax = r->axis(nxte);
-      int x, y;
-      if (dx == 0) {
-        y = ax;
-        if (rL <= _goalx && _goalx <= rR) x=_goalx;
-        else if (rL > _goalx) x=rL;
-        else x=rR;
-      }
-      else {
-        x = ax;
-        if (rL <= _goaly && _goaly <= rR) y=_goaly;
-        else if (rL > _goaly) y=rL;
-        else y=rR;
-      }
-      jpts_.push_back(_encode_pdir(map_->to_id(x, y), dx, dy));
-      continue;
-    }
 
-    hori = r->axis(nxte);
-    vertL = r->axis(dx?eposition::N: eposition::W);
-    if (lb <= vertL && vertL <= ub) {
-      if (_scanLR(r, dx?hori: vertL, dx?vertL: hori, dx, dy))
-        rL++;
-    }
-    vertR = r->axis(dx?eposition::S: eposition::E);
-    if (vertL != vertR && lb <= vertR && vertR <= ub) {
-      if (_scanLR(r, dx?hori:vertR, dx?vertR:hori, dx, dy))
-        rR--;
-    }
-    if (rL <= rR) {
-      if (nxtr != nullptr && r == nxtr) {
-        assert(newLb == INF);
-        assert(newUb == INF);
-        newLb = rL;
-        newUb = rR;
+      if (rid == _goal_rid) {
+        rL = max(rL, lb);
+        rR = min(rR, ub);
+        int ax = r->axis(nxte);
+        int x, y;
+        if (dx == 0) {
+          y = ax;
+          if (rL <= _goalx && _goalx <= rR) x=_goalx;
+          else if (rL > _goalx) x=rL;
+          else x=rR;
+        }
+        else {
+          x = ax;
+          if (rL <= _goaly && _goaly <= rR) y=_goaly;
+          else if (rL > _goaly) y=rL;
+          else y=rR;
+        }
+        jpts_.push_back(_encode_pdir(map_->to_id(x, y), dx, dy));
+        continue;
       }
-      else intervals.push({rL, rR, r});
+
+      hori = r->axis(nxte);
+      vertL = r->axis(dx?eposition::N: eposition::W);
+      if (lb <= vertL && vertL <= ub) {
+        if (_scanLR(r, dx?hori: vertL, dx?vertL: hori, dx, dy))
+          rL++;
+      }
+      vertR = r->axis(dx?eposition::S: eposition::E);
+      if (vertL != vertR && lb <= vertR && vertR <= ub) {
+        if (_scanLR(r, dx?hori:vertR, dx?vertR:hori, dx, dy))
+          rR--;
+      }
+      if (rL <= rR) {
+        if (nxtr != nullptr && r == nxtr) {
+          assert(newLb == INF);
+          assert(newUb == INF);
+          newLb = rL;
+          newUb = rR;
+        }
+        else {
+          if (!found) {
+            nxtL = rL, nxtU = rR, nxtRect = r;
+            found = true;
+          }
+          else {
+            intervals.push({rL, rR, r});
+            flag = false;
+          }
+        }
+      }
     }
+    if (!flag && found)
+      intervals.push({nxtL, nxtU, nxtRect});
+    if (!found) break;
   }
   lb = newLb, ub = newUb;
 }
