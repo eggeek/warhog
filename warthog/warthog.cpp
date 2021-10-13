@@ -14,6 +14,7 @@
 #include "jps2_expansion_policy_prune.h"
 #include "jpsplus_expansion_policy.h"
 #include "jps2plus_expansion_policy.h"
+#include "rect_expansion_policy.h"
 #include "octile_heuristic.h"
 #include "scenario_manager.h"
 #include "weighted_gridmap.h"
@@ -204,6 +205,49 @@ run_jps2(warthog::scenario_manager& scenmgr)
 		}
 
 		std::cout << i<<"\t" << "jps2" << "\t" 
+		<< astar.get_nodes_expanded() << "\t" 
+		<< astar.get_nodes_generated() << "\t"
+		<< astar.get_nodes_touched() << "\t"
+		<< astar.get_search_time()  << "\t"
+		<< len << "\t" 
+    << expander.get_locator()->scan_cnt << "\t"
+		<< scenmgr.last_file_loaded() << std::endl;
+
+    tot += expander.get_locator()->scan_cnt;
+		check_optimality(len, exp);
+	}
+  std::cerr << "done. total memory: "<< astar.mem() + scenmgr.mem() << ", tot scan: " << tot << "\n";
+}
+
+
+void
+run_rect(warthog::scenario_manager& scenmgr)
+{
+    warthog::rectscan::RectMap map(scenmgr.mapfile.c_str());
+	warthog::rectscan::rect_expansion_policy expander(&map);
+	warthog::octile_heuristic heuristic(map.mapw, map.maph);
+
+	warthog::flexible_astar<
+		warthog::octile_heuristic,
+	   	warthog::rectscan::rect_expansion_policy> astar(&heuristic, &expander);
+	astar.set_verbose(verbose);
+  long long tot = 0;
+
+	std::cout << "id\talg\texpd\tgend\ttouched\ttime\tcost\tscnt\tsfile\n";
+	for(unsigned int i=0; i < scenmgr.num_experiments(); i++)
+	{
+		warthog::experiment* exp = scenmgr.get_experiment(i);
+    expander.get_locator()->scan_cnt = 0;
+
+		int startid = exp->starty() * exp->mapwidth() + exp->startx();
+		int goalid = exp->goaly() * exp->mapwidth() + exp->goalx();
+		double len = astar.get_length(startid, goalid);
+		if(len == warthog::INF)
+		{
+			len = 0;
+		}
+
+		std::cout << i<<"\t" << "rect" << "\t" 
 		<< astar.get_nodes_expanded() << "\t" 
 		<< astar.get_nodes_generated() << "\t"
 		<< astar.get_nodes_touched() << "\t"
@@ -526,6 +570,10 @@ main(int argc, char** argv)
 	{
 		run_jps2(scenmgr);
 	}
+  if (alg == "rect") 
+  {
+    run_rect(scenmgr);
+  }
 
   if (alg == "jps2-prune")
   {

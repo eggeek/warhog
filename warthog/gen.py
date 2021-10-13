@@ -226,6 +226,41 @@ def randomlize(mapfile, ratio):
         print(''.join(grids[i]))
 
 
+def scale_up(mapfile: str, r: int):
+    with open(mapfile, "r") as f:
+        grids = [list(i.strip()) for i in f.readlines()[4:]]
+    h = len(grids)
+    w = len(grids[0])
+
+    newh = h * r
+    neww = w * r
+    newg = [['.']*neww for i in range(newh)]
+
+    assert(neww * newh == h*w*r**2)
+
+    for y in range(newh):
+        for x in range(neww):
+            newg[y][x] = grids[y // r][x // r]
+
+    print ("type octile\nheight %d\nwidth %d\nmap" % (newh, neww))
+    for i in range(newh):
+        print(''.join(newg[i]))
+
+def scale_up_scen(sfile: str, r: int):
+    header = ["bucket_id", "map", "h", "w", "sx", "sy", "tx", "ty", "ref_dist"]
+    import pandas as pd
+    df: pd.DataFrame = pd.read_csv(sfile, skiprows=1, sep='\t', header=0, names=header)
+    df['bucket_id'] *= r
+    df['h'] *= r
+    df['w'] *= r
+    df['sx'] *= r
+    df['sy'] *= r
+    df['tx'] *= r
+    df['ty'] *= r
+    df['ref_dist'] *= r
+    print('version 1')
+    print(df.to_csv(header=False, sep='\t', index=False))
+
 if __name__ == "__main__":
     """
     ./gen map <l> <r>
@@ -261,3 +296,11 @@ if __name__ == "__main__":
         mapfile = sys.argv[2]
         ratio = float(sys.argv[3])
         randomlize(mapfile, ratio)
+    elif (sys.argv[1] == "scale"):
+        mapfile = sys.argv[2]
+        f = int(sys.argv[3])
+        scale_up(mapfile, f)
+    elif (sys.argv[1] == "scale-scen"):
+        sfile = sys.argv[2]
+        f = int(sys.argv[3])
+        scale_up_scen(sfile, f)
