@@ -5,6 +5,7 @@ import random
 grids = []
 start = []
 target = []
+obstacle_marks = "SWT@O"
 
 def fill(x0, y0, x1, y1, c):
     for x in range(x0, x1+1):
@@ -73,7 +74,7 @@ def gen_square_grid(l, r):
         grids[l // 2][x] = 'T'
 
     # mid random obstacles
-    for y in range(l // 4, l - l // 4):
+    for y in range(l*3 // 8, l*5 // 8):
         for x in range(1, l):
             if random.random() < r:
                 grids[y][x] = 'T'
@@ -133,17 +134,21 @@ def gen_diag_grid(l, r):
         y = l - x
         grids[y][x] = 'T'
 
-    for d in range(1, h // 2):
+    for d in range(1, l // 8):
         for x in range(l - d):
             y = l - d - x
-            if not random.randint(0, 31):
+            if random.random() < r:
                 grids[y][x] = 'T'
+            #  if not random.randint(0, 31):
+            #      grids[y][x] = 'T'
 
-    for d in range(1, h // 2):
+    for d in range(1, l // 8):
         for x in range(d, l):
             y = l-1 + d - x
-            if not random.randint(0, 31):
+            if random.random() < r:
                 grids[y][x] = 'T'
+            #  if not random.randint(0, 31):
+            #      grids[y][x] = 'T'
 
     print_grids()
 
@@ -198,6 +203,50 @@ def gen_query(mapfile, num):
     print (min(len(start), len(target)))
     for i in range(min(len(start), len(target))):
         print (start[i][0], start[i][1], target[i][0], target[i][1])
+
+def query2scen(qfile):
+    with open(qfile, 'r') as f:
+        raw = f.readlines()
+    mapfile = raw[0].strip()
+    with open(mapfile, 'r') as f:
+        grids = [list(i.strip()) for i in f.readlines()[4:]]
+    h = len(grids)
+    w = len(grids[0])
+    global start, target
+    start, target = [], []
+    for line in raw[2:]:
+        sx, sy, tx, ty = map(int, line.split(' '))
+        start.append((sx, sy))
+        target.append((tx, ty))
+    print("version 1")
+    for i in range(len(start)):
+        print("0 %s %d %d %d %d %d %d 0" % (mapfile, h, w, start[i][0], start[i][1], target[i][0], target[i][1]))
+
+
+def gen_scen(mapfile, num):
+    with open(mapfile, 'r') as f:
+        grids = [list(i.strip()) for i in f.readlines()[4:]]
+        h = len(grids)
+        w = len(grids[0])
+        global start, target
+        start, target = [], []
+
+        while len(start) < num:
+            x = random.randint(0, w-1)
+            y = random.randint(0, h-1)
+            if (grids[y][x] == '.'):
+                start.append((x, y))
+
+        while len(target) < num:
+            x = random.randint(0, w-1)
+            y = random.randint(0, h-1)
+            if (grids[y][x] == '.'):
+                target.append((x, y))
+
+        print ("version 1")
+        for i in range(min(len(start), len(target))):
+            print ("0 %s %d %d %d %d %d %d 0" % (mapfile, h, w, 
+                start[i][0], start[i][1], target[i][0], target[i][1]))
 
 
 def randomlize(mapfile, ratio):
@@ -261,6 +310,19 @@ def scale_up_scen(sfile: str, r: int):
     print('version 1')
     print(df.to_csv(header=False, sep='\t', index=False))
 
+def grid2csv(mfile):
+    with open(mfile, "r") as f:
+        rows = [i.strip() for i in f.readlines()[4:]]
+    header = "map\tmapw\tmaph\tx\ty\ttraversable"
+    print(header)
+    mapw = len(rows[0])
+    maph = len(rows)
+    for y in range(maph):
+        for x in range(mapw):
+            b = rows[y][x] in obstacle_marks
+            print("%s\t%d\t%d\t%d\t%d\t%d" % (mfile, mapw, maph, x, y, b))
+
+
 if __name__ == "__main__":
     """
     ./gen map <l> <r>
@@ -268,11 +330,11 @@ if __name__ == "__main__":
     """
     if (sys.argv[1] == "diag-map"):
         l = int(sys.argv[2])
-        r = float(sys.argv[3]) if len(sys.argv) >= 4 else 0.2
+        r = float(sys.argv[3]) if len(sys.argv) >= 4 else 0.01
         gen_diag_grid(l, r)
     elif (sys.argv[1] == 'square-map'):
         l = int(sys.argv[2])
-        r = float(sys.argv[3]) if len(sys.argv) >= 4 else 0.2
+        r = float(sys.argv[3]) if len(sys.argv) >= 4 else 0.01
         gen_square_grid(l, r)
     elif (sys.argv[1] == "maxscan"):
         l = int(sys.argv[2])
@@ -289,6 +351,10 @@ if __name__ == "__main__":
         mapfile = sys.argv[2]
         num = int(sys.argv[3]) if len(sys.argv) >= 4 else 100
         gen_query(mapfile, num)
+    elif (sys.argv[1] == "scen"):
+        mapfile = sys.argv[2]
+        num = int(sys.argv[3]) if len(sys.argv) >= 4 else 100
+        gen_scen(mapfile, num)
     elif (sys.argv[1] == 'empty'):
         l = int(sys.argv[2])
         gen_empty(l)
@@ -304,3 +370,9 @@ if __name__ == "__main__":
         sfile = sys.argv[2]
         f = int(sys.argv[3])
         scale_up_scen(sfile, f)
+    elif (sys.argv[1] == "query2scen"):
+        qfile = sys.argv[2]
+        query2scen(qfile)
+    elif (sys.argv[1] == "grid2csv"):
+        mfile = sys.argv[2]
+        grid2csv(mfile)
