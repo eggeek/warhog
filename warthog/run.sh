@@ -1,35 +1,124 @@
+domains=(
+  ./maps/bgmaps
+  ./maps/iron
+  ./maps/random10
+  ./maps/starcraft
+  ./maps/street
+  ./maps/dao
+  ./maps/maze512
+  ./maps/rooms
+)
+
 maps=(
-  ./maps/iron/scene_sp_endmaps.map
-  ./endmaps_2.map
-  ./endmaps_3.map
-  ./endmaps_4.map
-  ./endmaps_5.map
-  ./endmaps_6.map
-  ./endmaps_7.map
-  ./endmaps_8.map
+  ./testcases/maps/diag-random-512.map
+  ./testcases/maps/square-random-512.map
+  ./testcases/maps/maze-random.map
+  ../maps/maze512/maze512-16-8.map
+)
+
+queries=(
+  ./testcases/diag-random-512.query
+  ./testcases/diag-random-1024.query
+  ./testcases/square-random-512.query
+  ./testcases/square-random-1024.query
+  ./testcases/maze-random.query
+  ./testcases/Berlin_0_1024.query
 )
 
 scens=(
-  ./scenarios/movingai/iron/scene_sp_endmaps.map.scen
-  ./endmaps_2.map.scen
-  ./endmaps_3.map.scen
-  ./endmaps_4.map.scen
-  ./endmaps_5.map.scen
-  ./endmaps_6.map.scen
-  ./endmaps_7.map.scen
-  ./endmaps_8.map.scen
+  ./data/diag-random-512.scen
+  ./data/square-random-512.scen
+  ./data/maze-random.scen
+  ./data/maze-random.scen
+  )
+
+algs=(
+  jps
+  jps-prune
+  jps-prune0
+  # jps2
+  # jps2-prune
 )
+data_dir="./data"
+out_dir="./output"
+sml_outdir="./small_output"
 
-algs=(rect)
-
-for (( i=0; i<${#maps[@]}; i++ )); do
-  mpath=${maps[$i]}
-  spath=${scens[$i]}
-  mapname=$(basename -- $mpath)
-  for alg in "${algs[@]}"; do
-    outpath="./output/$alg/"
-    cmd="./bin/warthog --scen ${spath} --map ${mpath} --alg $alg > $outpath/$mapname.log"
-    echo $cmd
-    eval "$cmd"
+function gen_scen() {
+  mkdir -p ${data_dir}
+  for q in "${queries[@]}"; do
+    mname=$(basename $q .query)
+    spath="${data_dir}/${mname}.map.scen"
+    if [[ ! -e $spath ]]; then
+      cmd="./gen.py query2scen ${q} > ${spath}"
+      echo $cmd
+      eval $cmd
+    fi
   done
-done
+}
+
+function run_domain() {
+  domain=$1
+  dname=$(basename -- $domain)
+  out_dir="./output/"
+  for mpath in `ls ${domain}/*.map`; do
+    mapname=$(basename -- $mpath)
+    spath="./scenarios/movingai/${dname}/${mapname}.scen"
+
+    for alg in "${algs[@]}"; do
+      outpath="${out_dir}/$alg"
+      mkdir -p ${outpath}
+      cmd="./bin/warthog --scen ${spath} --map ${mpath} --alg $alg > $outpath/$mapname.log"
+      echo $cmd
+      eval "$cmd"
+    done
+  done
+}
+
+
+function exp() {
+  for dm in ${domains[@]}; do
+    run_domain $dm
+  done
+}
+
+function small_exp() {
+  for (( i=0; i<${#maps[@]}; i++ )); do
+    mpath=${maps[$i]}
+    mname=$(basename -- ${mpath})
+    spath=${scens[$i]}
+    for alg in ${algs[@]}; do
+      mkdir -p "${sml_outdir}/${alg}"
+      outpath="${sml_outdir}/${alg}/${mname}.log"
+      cmd="./bin/warthog --map ${mpath} --scen ${spath} --alg ${alg} > ${outpath}"
+      echo $cmd
+      eval $cmd
+    done
+  done
+}
+
+function clean() {
+  rm -f data/*.jps+
+  fd -e log . "output" --no-ignore -x rm
+}
+
+function gen_small() {
+  cmd="./gen.py diag-map 512 > testcases/maps/diag-random-512.map"
+  echo $cmd
+  eval $cmd
+  cmd="./gen.py square-map 512 > testcases/maps/square-random-512.map"
+  echo $cmd
+  eval $cmd
+}
+
+case "$1" in
+  exp) exp;;
+  cexp) clean && exp;;
+  sexp) small_exp;;
+  scexp) clean && small_exp;;
+  sgen) gen_small ;;
+  gen) gen_scen ;;
+  clean) clean ;; 
+  *)
+    echo $"Usage: $0 {exp|gen}"
+    exit 1
+esac
