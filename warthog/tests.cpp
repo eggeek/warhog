@@ -1,4 +1,11 @@
 #define CATCH_CONFIG_RUNNER
+#include <iomanip>
+#include <sstream>
+#include <tr1/unordered_map>
+#include <memory>
+#include <cstdio>
+#include <catch2/catch.hpp>
+
 #include "blockmap.h"
 #include "cuckoo_table.h"
 #include "cpool.h"
@@ -13,15 +20,8 @@
 #include "scenario_manager.h"
 
 #include "getopt.h"
-#include "catch.hpp"
 #include "test-jlimit.hpp"
 #include "test-rect.hpp"
-
-#include <iomanip>
-#include <sstream>
-#include <tr1/unordered_map>
-#include <memory>
-#include <cstdio>
 
 using namespace std;
 string testfile;

@@ -2,7 +2,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "catch.hpp"
+#include <catch2/catch.hpp>
 #include "constants.h"
 #include "gridmap.h"
 #include "jps.h"

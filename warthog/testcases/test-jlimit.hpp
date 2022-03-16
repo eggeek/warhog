@@ -2,8 +2,8 @@
 #include <fstream>
 #include <map>
 #include <string>
+#include <catch2/catch.hpp>
 
-#include "catch.hpp"
 #include "experiment.h"
 #include "gridmap.h"
 #include "jps_expansion_policy_prune.h"
@@ -158,6 +158,7 @@ TEST_CASE("jlimit-scen") {
     string spath = c.second;
     w::gridmap gridmap(mpath.c_str());
     scenmgr.load_scenario(spath.c_str());
+    cerr << "map: " << mpath.c_str() << endl;
     run_scen(gridmap, scenmgr);
     scenmgr.clear();
   }
