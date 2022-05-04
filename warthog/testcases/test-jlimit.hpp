@@ -6,6 +6,7 @@
 
 #include "experiment.h"
 #include "gridmap.h"
+#include "jps_expansion_policy_simple.h"
 #include "jps_expansion_policy_prune.h"
 #include "jps_expansion_policy.h"
 #include "jps2_expansion_policy.h"
@@ -19,6 +20,7 @@
 #include "scenario_manager.h"
 #include "jps_heuristic.h"
 #include "neo_astar.h"
+#include "dijkstra.h"
 using namespace std;
 
 namespace TEST_JLIMIT {
@@ -55,9 +57,10 @@ struct ExpData {
   }
 };
 
-inline void print_query(int idx, string mapname, int sx, int sy, int tx, int ty, 
+inline void print_query(int idx, string mapname, int mapw, int maph, int sx, int sy, int tx, int ty, 
 double expect_len, double actual_len) {
-  cerr << idx << "\t" << mapname << "\t" << sx << "\t" << sy 
+  cerr << idx << "\t" << mapname << "\t" << mapw << "\t" << maph 
+       << "\t" << sx << "\t" << sy 
        << "\t" << tx << "\t" << ty << "\t" << expect_len << endl;
   cerr << "expected: " << expect_len << ", actual: " << actual_len << endl;
 }
@@ -65,6 +68,7 @@ double expect_len, double actual_len) {
 inline void run(w::gridmap& map, vector<node>& s, vector<node>& t, bool verbose=false) {
 
   ExpData d_jps, d_jps2, d_jpsprune, d_jps2prune;
+  w::jps_expansion_policy_simple jpss(&map);
   w::jps_expansion_policy jps(&map);
   w::jps2_expansion_policy jps2(&map);
   w::jps_expansion_policy_prune jps_prune(&map);
@@ -74,6 +78,7 @@ inline void run(w::gridmap& map, vector<node>& s, vector<node>& t, bool verbose=
 
   w::flexible_astar<w::octile_heuristic, w::jps_expansion_policy_prune> neoAstar(&heuristic1, &jps_prune);
   w::flexible_astar<w::octile_heuristic, w::jps2_expansion_policy_prune> neoAstar2(&heuristic1, &jps2_prune);
+  w::flexible_astar<w::octile_heuristic, w::jps_expansion_policy_simple> simpleA(&heuristic1, &jpss);
   w::flexible_astar<w::octile_heuristic,w::jps_expansion_policy> astar1(&heuristic1, &jps);
   w::flexible_astar<w::octile_heuristic,w::jps2_expansion_policy> astar2(&heuristic1, &jps2);
 
@@ -96,24 +101,33 @@ inline void run(w::gridmap& map, vector<node>& s, vector<node>& t, bool verbose=
     double len_prune = neoAstar.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
     d_jpsprune.update(&neoAstar, jps_prune.get_locator()->scan_cnt);
 
-    double len_prune2 = neoAstar2.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
-    d_jps2prune.update(&neoAstar2, jps2_prune.get_locator()->scan_cnt);
+    // double len_prune2 = neoAstar2.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
+    // d_jps2prune.update(&neoAstar2, jps2_prune.get_locator()->scan_cnt);
 
     double len = astar1.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
     d_jps.update(&astar1, jps.get_locator()->scan_cnt);
 
-    astar2.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
-    d_jps2.update(&astar2, jps2.get_locator()->scan_cnt);
+    double lens = simpleA.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
 
-    REQUIRE(fabs(len_prune - len) < eps);
+    if (fabs(lens - len) > eps) {
+      print_query(i, map.filename(), map.header_width(), map.header_height(), 
+          s[i].x, s[i].y, t[i].x, t[i].y, len_prune, len);
+    }
+    REQUIRE(fabs(len_prune - lens) < eps);
+
+    // astar2.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
+    // d_jps2.update(&astar2, jps2.get_locator()->scan_cnt);
+
     if (fabs(len_prune - len) > eps) {
-      print_query(i, map.filename(), s[i].x, s[i].y, t[i].x, t[i].y, len, len_prune);
+      print_query(i, map.filename(), map.header_width(), map.header_height(), 
+          s[i].x, s[i].y, t[i].x, t[i].y, len_prune, len);
     }
-
-    REQUIRE(fabs(len_prune2 - len) < eps);
-    if (fabs(len_prune2 - len) > eps) {
-      print_query(i, map.filename(), s[i].x, s[i].y, t[i].x, t[i].y, len, len_prune2);
-    }
+    // if (fabs(len_prune2 - len) > eps) {
+    //   print_query(i, map.filename(), map.header_width(), map.header_height(),
+    //       s[i].x, s[i].y, t[i].x, t[i].y, len, len_prune2);
+    // }
+    REQUIRE(fabs(len_prune - len) < eps);
+    // REQUIRE(fabs(len_prune2 - len) < eps);
 
   }
   cout << "--------------------------- " << map.filename() << endl;
@@ -132,6 +146,65 @@ inline void run_scen(w::gridmap& gridmap, w::scenario_manager& scenmgr) {
     t.push_back({(int)exp->goalx(), (int)exp->goaly()});
   }
   run(gridmap, s, t, false);
+}
+
+TEST_CASE("gval") {
+  vector<vector<string>> cases = {
+    {"./maps/dao/ost100d.map", "./scenarios/movingai/dao/ost100d.map.scen", "max"},
+    {"./maps/dao/isound1.map", "./scenarios/movingai/dao/isound1.map.scen", "min"},
+    {"./maps/bgmaps/AR0509SR.map", "./scenarios/movingai/bgmaps/AR0509SR.map.scen", "max"},
+    {"./maps/bgmaps/AR0605SR.map", "./scenarios/movingai/bgmaps/AR0605SR.map.scen", "min"},
+    {"./maps/starcraft/IceMountain.map", "./scenarios/movingai/starcraft/IceMountain.map.scen", "max"},
+    {"./maps/starcraft/Caldera.map", "./scenarios/movingai/starcraft/Caldera.map.scen", "min"},
+    {"./maps/iron/scene_sp_sax_04.map", "./scenarios/movingai/iron/scene_sp_sax_04.map.scen", "max"},
+    {"./maps/iron/scene_mp_2p_02.map", "./scenarios/movingai/iron/scene_mp_2p_02.map.scen", "min"},
+  };
+  string header = "map,jpsE,cjpsE,jpsT,cjpsT,desc";
+  cout << header << endl;
+  for (auto it: cases) {
+    string mpath = it[0];
+    string spath = it[1];
+    string desc = it[2];
+
+    warthog::gridmap* map = new warthog::gridmap(mpath.c_str());
+    w::octile_heuristic heur(map->width(), map->height());
+
+    // w::jps_expansion_policy ep(map);
+    // w::jps_expansion_policy_prune cep(map);
+    // w::flexible_astar<w::octile_heuristic, w::jps_expansion_policy> jps(&heur, &ep);
+    // w::flexible_astar<w::octile_heuristic, w::jps_expansion_policy_prune> cjps(&heur, &cep);
+
+    w::jps2_expansion_policy ep(map);
+    w::jps2_expansion_policy_prune cep(map);
+    w::flexible_astar<w::octile_heuristic, w::jps2_expansion_policy> jps(&heur, &ep);
+    w::flexible_astar<w::octile_heuristic, w::jps2_expansion_policy_prune> cjps(&heur, &cep);
+    w::Dijkstra dij(mpath);
+    w::scenario_manager smgr;
+    smgr.load_scenario(spath.c_str());
+    long long cnt_jps_expd = 0, cnt_cjps_expd = 0, cnt_jps_touch = 0, cnt_cjps_gen = 0;
+    for (int i=(int)smgr.num_experiments()-50; i<(int)smgr.num_experiments(); i++) {
+      w::experiment* exp = smgr.get_experiment(i);
+      int sx = exp->startx(), sy = exp->starty();
+      int tx = exp->goalx(), ty = exp->goaly();
+      uint32_t sid = map->to_padded_id(sx, sy);
+      uint32_t tid = map->to_padded_id(tx, ty);
+      dij.run(sid);
+
+      ep.dist = dij.dist;
+      jps.get_length(sid, tid);
+      cnt_jps_expd += ep.subcnt_expd;
+      cnt_jps_touch += ep.subcnt_gen;
+      ep.clear_cnt();
+
+
+      cep.dist = dij.dist;
+      cjps.get_length(sid, tid);
+      cnt_cjps_expd += cep.subcnt_expd;
+      cnt_cjps_gen += cep.subcnt_gen;
+      cep.clear_cnt();
+    }
+    cout << mpath << "," << cnt_jps_expd << "," << cnt_cjps_expd << "," << cnt_jps_touch << "," << cnt_cjps_gen << "," << desc << endl;
+  }
 }
 
 TEST_CASE("jlimit-scen") {
