@@ -1,4 +1,5 @@
 #include "jps_expansion_policy_prune.h"
+#include "statistic.h"
 
 typedef warthog::jps_expansion_policy_prune jps_exp_prune;
 
@@ -26,6 +27,10 @@ jps_exp_prune::expand(
 {
 	reset();
   jpruner.reset_constraints();
+
+#ifdef CNT
+  statis::update_subopt_expd(current->get_id(), current->get_g());
+#endif
 
   uint32_t searchid = problem->get_searchid();
   jpruner.pi = problem;
@@ -66,6 +71,10 @@ jps_exp_prune::expand(
         if (mynode->get_searchid() != searchid) {
           mynode->reset(searchid);
         }
+
+#ifdef CNT
+        statis::update_subopt_touch(mynode->get_id(), current->get_g()+jumpcost);
+#endif
         mynode->set_pdir(d);
 				neighbours_[num_neighbours_] = mynode;
 				costs_[num_neighbours_] = jumpcost;

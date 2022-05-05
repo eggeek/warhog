@@ -6,6 +6,7 @@
 
 #include "experiment.h"
 #include "gridmap.h"
+#include "statistic.h"
 #include "jps_expansion_policy_simple.h"
 #include "jps_expansion_policy_prune.h"
 #include "jps_expansion_policy.h"
@@ -149,6 +150,8 @@ inline void run_scen(w::gridmap& gridmap, w::scenario_manager& scenmgr) {
 }
 
 TEST_CASE("gval") {
+  // count the number of suboptimal node touching/expansion of jps
+  // need to modify the corresponding jps class to make this test work
   vector<vector<string>> cases = {
     {"./maps/dao/ost100d.map", "./scenarios/movingai/dao/ost100d.map.scen", "max"},
     {"./maps/dao/isound1.map", "./scenarios/movingai/dao/isound1.map.scen", "min"},
@@ -181,7 +184,7 @@ TEST_CASE("gval") {
     w::Dijkstra dij(mpath);
     w::scenario_manager smgr;
     smgr.load_scenario(spath.c_str());
-    long long cnt_jps_expd = 0, cnt_cjps_expd = 0, cnt_jps_touch = 0, cnt_cjps_gen = 0;
+    long long cnt_jps_expd = 0, cnt_cjps_expd = 0, cnt_jps_touch = 0, cnt_cjps_touch = 0;
     for (int i=(int)smgr.num_experiments()-50; i<(int)smgr.num_experiments(); i++) {
       w::experiment* exp = smgr.get_experiment(i);
       int sx = exp->startx(), sy = exp->starty();
@@ -190,20 +193,20 @@ TEST_CASE("gval") {
       uint32_t tid = map->to_padded_id(tx, ty);
       dij.run(sid);
 
-      ep.dist = dij.dist;
+      statis::dist = vector<warthog::cost_t>(dij.dist);
       jps.get_length(sid, tid);
-      cnt_jps_expd += ep.subcnt_expd;
-      cnt_jps_touch += ep.subcnt_gen;
-      ep.clear_cnt();
+      cnt_jps_expd += statis::subopt_expd;
+      cnt_jps_touch += statis::subopt_touch;
+      statis::clear();;
 
 
-      cep.dist = dij.dist;
+      statis::dist = vector<warthog::cost_t>(dij.dist);
       cjps.get_length(sid, tid);
-      cnt_cjps_expd += cep.subcnt_expd;
-      cnt_cjps_gen += cep.subcnt_gen;
-      cep.clear_cnt();
+      cnt_cjps_expd += statis::subopt_expd;
+      cnt_cjps_touch += statis::subopt_touch;
+      statis::clear();;
     }
-    cout << mpath << "," << cnt_jps_expd << "," << cnt_cjps_expd << "," << cnt_jps_touch << "," << cnt_cjps_gen << "," << desc << endl;
+    cout << mpath << "," << cnt_jps_expd << "," << cnt_cjps_expd << "," << cnt_jps_touch << "," << cnt_cjps_touch << "," << desc << endl;
   }
 }
 

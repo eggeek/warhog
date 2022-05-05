@@ -31,8 +31,12 @@ all: dev
 fast: CFLAGS += $(FAST_CFLAGS) $(D_INCLUDES) 
 fast: main
 
+.PHONY: fastcnt
+fastcnt: CFLAGS += $(FAST_CFLAGS) -DCNT $(D_INCLUDES)
+fastcnt: main
+
 .PHONY: dev
-dev: CFLAGS += $(DEV_CFLAGS) $(D_INCLUDES) 
+dev: CFLAGS += $(DEV_CFLAGS) -DCNT $(D_INCLUDES) 
 dev: main
 
 .PHONY: profile

@@ -1,4 +1,5 @@
 #include "jps2_expansion_policy.h"
+#include "statistic.h"
 
 warthog::jps2_expansion_policy::jps2_expansion_policy(warthog::gridmap* map)
 {
@@ -24,6 +25,9 @@ warthog::jps2_expansion_policy::expand(
 {
 	reset();
 
+#ifdef CNT
+  statis::update_subopt_expd(current->get_id(), current->get_g());
+#endif
 	// compute the direction of travel used to reach the current node.
 	warthog::jps::direction dir_c = current->get_pdir();
 
@@ -56,6 +60,10 @@ warthog::jps2_expansion_policy::expand(
 		warthog::jps::direction pdir = (warthog::jps::direction)*(((uint8_t*)(&jp_id))+3);
 
 		warthog::search_node* mynode = nodepool_->generate(jp_id & id_mask);
+
+#ifdef CNT
+    statis::update_subopt_touch(mynode->get_id(), current->get_g()+costs_.at(i));
+#endif
 		neighbours_.push_back(mynode);
 		if(mynode->get_searchid() != searchid) { mynode->reset(searchid); }
 
