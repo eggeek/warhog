@@ -21,6 +21,7 @@
 #include "problem_instance.h"
 #include "search_node.h"
 #include "timer.h"
+#include "global.h"
 
 #include <iostream>
 #include <memory>
@@ -188,6 +189,9 @@ class flexible_astar
 			instance.set_goal(goalid);
 			instance.set_start(startid);
 			instance.set_searchid(searchid_++);
+      global::query::pi = &instance;
+      global::query::startid = startid;
+      global::query::goalid = goalid;
 
 			warthog::search_node* goal = 0;
 			warthog::search_node* start = expander_->generate(startid);
