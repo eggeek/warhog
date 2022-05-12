@@ -1,5 +1,6 @@
 #include "jps2_expansion_policy_prune.h"
-#include "statistic.h"
+#include "global.h"
+namespace G = global;
 
 typedef warthog::jps2_expansion_policy_prune jps2_exp_prune;
 
@@ -36,7 +37,7 @@ jps2_exp_prune::expand(
   jpruner.cur = current;
 
 #ifdef CNT
-  statis::update_subopt_expd(current->get_id(), current->get_g());
+  G::statis::update_subopt_expd(current->get_id(), current->get_g());
 #endif
 	// compute the direction of travel used to reach the current node.
 	warthog::jps::direction dir_c = current->get_pdir();
@@ -74,7 +75,7 @@ jps2_exp_prune::expand(
 		if(mynode->get_searchid() != searchid) { mynode->reset(searchid); }
 
 #ifdef CNT
-    statis::update_subopt_touch(mynode->get_id(), current->get_g()+costs_.at(i));
+    G::statis::update_subopt_touch(mynode->get_id(), current->get_g()+costs_.at(i));
 #endif
 		// stupid hack
 		if((current->get_g() + costs_.at(i)) < mynode->get_g())

@@ -1,10 +1,12 @@
 #include "jps_expansion_policy.h"
-#include "statistic.h"
+#include "global.h"
+namespace G = global;
 
 warthog::jps_expansion_policy::jps_expansion_policy(warthog::gridmap* map)
 {
 	map_ = map;
 	nodepool_ = new warthog::blocklist(map->height(), map->width());
+  G::query::nodepool = nodepool_;
 	jpl_ = new warthog::online_jump_point_locator(map);
 	reset();
 }
@@ -22,7 +24,7 @@ warthog::jps_expansion_policy::expand(
 	reset();
 
 #ifdef CNT 
-  statis::update_subopt_expd(current->get_id(), current->get_g());
+  G::statis::update_subopt_expd(current->get_id(), current->get_g());
 #endif
 
   uint32_t searchid = problem->get_searchid();
@@ -58,7 +60,7 @@ warthog::jps_expansion_policy::expand(
         mynode->set_pdir(d);
 
 #ifdef CNT
-        statis::update_subopt_touch(mynode->get_id(), current->get_g()+jumpcost);
+        G::statis::update_subopt_touch(mynode->get_id(), current->get_g()+jumpcost);
 #endif
 				neighbours_[num_neighbours_] = mynode;
 				costs_[num_neighbours_] = jumpcost;

@@ -1,4 +1,5 @@
 #include "jps_expansion_policy_prune2.h"
+#include "global.h"
 
 typedef warthog::jps_expansion_policy_prune2 jps_exp_prune;
 
@@ -6,10 +7,11 @@ jps_exp_prune::jps_expansion_policy_prune2(warthog::gridmap* map)
 {
 	map_ = map;
   mapper = new warthog::Mapper(map_);
-  jpruner.init(map->height() * map->width());
-  jpruner.mapper = mapper;
+  // jpruner.init(map->height() * map->width());
+  // jpruner.mapper = mapper;
 	nodepool_ = new warthog::blocklist(map->height(), map->width());
-	jpl_ = new warthog::online_jump_point_locator_prune2(map, &jpruner, nodepool_);
+  global::query::nodepool = nodepool_;
+	jpl_ = new warthog::online_jump_point_locator_prune2(map, &jpruner);
 	reset();
 }
 
@@ -26,10 +28,11 @@ jps_exp_prune::expand(
 {
 	reset();
   jpruner.reset_constraints();
+  jpl_->pa = current;
 
   uint32_t searchid = problem->get_searchid();
-  jpruner.pi = problem;
-  jpruner.cur = current;
+  // jpruner.pi = problem;
+  // jpruner.cur = current;
 	// compute the direction of travel used to reach the current node.
 	warthog::jps::direction dir_c =
 	   	this->compute_direction(current->get_parent(), current);

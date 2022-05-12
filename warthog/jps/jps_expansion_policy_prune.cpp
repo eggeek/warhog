@@ -1,5 +1,6 @@
 #include "jps_expansion_policy_prune.h"
-#include "statistic.h"
+#include "global.h"
+namespace G = global;
 
 typedef warthog::jps_expansion_policy_prune jps_exp_prune;
 
@@ -29,7 +30,7 @@ jps_exp_prune::expand(
   jpruner.reset_constraints();
 
 #ifdef CNT
-  statis::update_subopt_expd(current->get_id(), current->get_g());
+  G::statis::update_subopt_expd(current->get_id(), current->get_g());
 #endif
 
   uint32_t searchid = problem->get_searchid();
@@ -73,7 +74,7 @@ jps_exp_prune::expand(
         }
 
 #ifdef CNT
-        statis::update_subopt_touch(mynode->get_id(), current->get_g()+jumpcost);
+        G::statis::update_subopt_touch(mynode->get_id(), current->get_g()+jumpcost);
 #endif
         mynode->set_pdir(d);
 				neighbours_[num_neighbours_] = mynode;

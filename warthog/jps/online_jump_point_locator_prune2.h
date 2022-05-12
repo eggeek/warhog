@@ -9,8 +9,9 @@
 
 #include "jps.h"
 #include "gridmap.h"
-#include "online_jps_pruner.h"
-#include "blocklist.h"
+#include "online_jps_pruner2.h"
+#include "problem_instance.h"
+#include "global.h"
 
 namespace warthog
 {
@@ -18,7 +19,7 @@ namespace warthog
 class online_jump_point_locator_prune2 
 {
 	public: 
-		online_jump_point_locator_prune2(gridmap* map, online_jps_pruner* pruner, blocklist* np);
+		online_jump_point_locator_prune2(gridmap* map, online_jps_pruner2* pruner);
 		~online_jump_point_locator_prune2();
     uint32_t scan_cnt;
 
@@ -31,8 +32,8 @@ class online_jump_point_locator_prune2
 		{
 			return sizeof(*this) + rmap_->mem();
 		}
-    online_jps_pruner* jp;
-    blocklist* nodepool;
+    online_jps_pruner2* jp;
+    search_node* pa;
 
 	private:
 		void

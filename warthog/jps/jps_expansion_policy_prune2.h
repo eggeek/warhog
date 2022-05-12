@@ -14,7 +14,7 @@
 #include "search_node.h"
 #include "mapper.h"
 
-#include "online_jps_pruner.h"
+#include "online_jps_pruner2.h"
 #include "stdint.h"
 
 namespace warthog
@@ -107,7 +107,7 @@ class jps_expansion_policy_prune2
 		uint32_t num_neighbours_;
 		warthog::search_node* neighbours_[9];
 		warthog::cost_t costs_[9];
-    online_jps_pruner jpruner;
+    online_jps_pruner2 jpruner;
 
 		// computes the direction of travel; from a node n1
 		// to a node n2.
