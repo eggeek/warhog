@@ -10,8 +10,9 @@ namespace global{
 
 namespace statis {
   extern vector<warthog::cost_t> dist;
-  extern int subopt_expd;
-  extern int subopt_touch;
+  extern uint32_t subopt_expd;
+  extern uint32_t subopt_touch;
+  extern uint32_t scan_cnt;
 
   inline void update_subopt_expd(uint32_t id, warthog::cost_t gval) {
     if (!dist.empty() && gval > dist[id]) subopt_expd++;
@@ -24,7 +25,8 @@ namespace statis {
   inline void clear() {
     dist.clear();
     subopt_expd = 0;
-    subopt_touch= 0;
+    subopt_touch = 0;
+    scan_cnt = 0;
   }
 };
 

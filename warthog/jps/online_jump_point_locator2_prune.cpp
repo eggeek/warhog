@@ -1,11 +1,13 @@
 #include "gridmap.h"
 #include "jps.h"
 #include "online_jump_point_locator2_prune.h"
+#include "global.h"
 
 #include <cassert>
 #include <climits>
 
 typedef warthog::online_jump_point_locator2_prune jlp;
+namespace G = global::statis;
 
 jlp::online_jump_point_locator2_prune(
 gridmap* map,
@@ -242,7 +244,7 @@ jlp::__jump_east(uint32_t node_id,
 	}
 
 	uint32_t num_steps = jumpnode_id - node_id;
-  this->scan_cnt += (num_steps >> 5) ;
+  G::scan_cnt += (num_steps >> 5) ;
 	uint32_t goal_dist = goal_id - node_id;
 	if(num_steps > goal_dist)
 	{
@@ -326,7 +328,7 @@ jlp::__jump_west(uint32_t node_id,
 
 	uint32_t num_steps = node_id - jumpnode_id;
 	uint32_t goal_dist = node_id - goal_id;
-  this->scan_cnt += (num_steps >> 5);
+  G::scan_cnt += (num_steps >> 5);
 	if(num_steps > goal_dist)
 	{
     jp->jump_step = goal_dist;
@@ -449,7 +451,7 @@ jlp::__jump_northeast(
 		}
 
 	}
-  this->scan_cnt += num_steps;
+  G::scan_cnt += num_steps;
 	jumpnode_id = node_id;
 	jumpcost = num_steps*warthog::ROOT_TWO;
 }
@@ -553,7 +555,7 @@ jlp::__jump_northwest(
 		   	break; 
 		}
 	}
-  this->scan_cnt += num_steps;
+  G::scan_cnt += num_steps;
 	jumpnode_id = node_id;
 	jumpcost = num_steps*warthog::ROOT_TWO;
 }
@@ -658,7 +660,7 @@ jlp::__jump_southeast(
 			break; 
 		}
 	}
-  this->scan_cnt += num_steps;
+  G::scan_cnt += num_steps;
 	jumpnode_id = node_id;
 	jumpcost = num_steps*warthog::ROOT_TWO;
 }

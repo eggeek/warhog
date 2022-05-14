@@ -1,11 +1,13 @@
 #include "gridmap.h"
 #include "jps.h"
 #include "online_jump_point_locator_prune.h"
+#include "global.h"
 
 #include <cassert>
 #include <climits>
 
 typedef warthog::online_jump_point_locator_prune lp;
+namespace G = global::statis;
 
 lp::online_jump_point_locator_prune(
 gridmap* map, 
@@ -200,7 +202,7 @@ lp::__jump_east(uint32_t node_id,
 	}
 
 	uint32_t num_steps = jumpnode_id - node_id;
-  this->scan_cnt += (num_steps >> 5);
+  G::scan_cnt = (num_steps >> 5);
 	uint32_t goal_dist = goal_id - node_id;
 	if(num_steps > goal_dist)
 	{
@@ -274,7 +276,7 @@ lp::__jump_west(uint32_t node_id,
 
 	uint32_t num_steps = node_id - jumpnode_id;
 	uint32_t goal_dist = node_id - goal_id;
-  this->scan_cnt += (num_steps >> 5);
+  G::scan_cnt += (num_steps >> 5);
 	if(num_steps > goal_dist)
 	{
     jp->jump_step = goal_dist;
@@ -350,7 +352,7 @@ lp::jump_northeast(uint32_t node_id,
 		if(!(cost1 && cost2)) { next_id = warthog::INF; break; }
 
 	}
-  this->scan_cnt += num_steps;
+  G::scan_cnt += num_steps;
 	jumpnode_id = next_id;
 	jumpcost = num_steps*warthog::ROOT_TWO;
 }
@@ -408,7 +410,7 @@ lp::jump_northwest(uint32_t node_id,
 		// couldn't move in either straight dir; node_id is an obstacle
 		if(!(cost1 && cost2)) { next_id = warthog::INF; break; }
 	}
-  this->scan_cnt += num_steps;
+  G::scan_cnt += num_steps;
 	jumpnode_id = next_id;
 	jumpcost = num_steps*warthog::ROOT_TWO;
 }
@@ -467,7 +469,7 @@ lp::jump_southeast(uint32_t node_id,
 		// couldn't move in either straight dir; node_id is an obstacle
 		if(!(cost1 && cost2)) { next_id = warthog::INF; break; }
 	}
-  this->scan_cnt += num_steps;
+  G::scan_cnt += num_steps;
 	jumpnode_id = next_id;
 	jumpcost = num_steps*warthog::ROOT_TWO;
 }
@@ -525,7 +527,7 @@ lp::jump_southwest(uint32_t node_id,
 		// couldn't move in either straight dir; node_id is an obstacle
 		if(!(cost1 && cost2)) { next_id = warthog::INF; break; }
 	}
-  this->scan_cnt += num_steps;
+  G::scan_cnt += num_steps;
 	jumpnode_id = next_id;
 	jumpcost = num_steps*warthog::ROOT_TWO;
 }

@@ -32,33 +32,39 @@ struct Constraint2 {
       // ga + sqrt(2)*d < gb + d
       // when creating a constraint, do one cardinal scanning to update it
       maxDiag,
-      // terminate i: when i=ti, all cardinal nodes are better reached from b
+      // terminate when i=ti, all cardinal nodes are better reached from b
       ti;
   inline int jlimt() const { return d - i; }
+
+  /*
+   * when i=ti, we should terminate the diagonal expansion
+   * thus, ti s.t. ga+ti*sqrt(2) > gb + octile(b, m) +1
+   * a-----b
+   *  \
+   *   \m
+   *    + ti
+   * octile(b, m) exists since all nodes above ti are scanned.
+   */
   inline void calc_ti() {
-    if (ga == gb) {// d is odd: floor(d/2), d is even: d/2+1;
-      ti = (d&1)? (d>>1): (d>>1)+1;
+    // case 1: ti-1 <= d-ti
+    if (ga + ROOT_TWO >= gb + dC) {
+      ti = 0;
+      return;
     }
-    else if (ga > gb) { // ceil((gb + d - (ga + 1)) / 2)
-      if (ga + 1 <= gb) {
-        ti = (d&1)? (d>>1): (d>>1)+1;
-      }
-      else {
-        ti = (gb + dC - ga + ONE) / (ONE<<1);
-      }
-    }
-    else { // ceil(gb + (sqrt(2)-1)d - (ga+1) / 2(sqrt(2)-1))
-      static const int delta = ROOT_TWO-ONE;
-      static const int div = delta << 1;
-      ti = (gb - ga + delta*(d+1) + div - 1) / div;
+    else {
+      // case 2: ti-1 >= d-ti
+      static const int delta = ROOT_TWO - ONE;
+      ti = (gb - ga + delta * d + (delta<<1) - 1) / (delta << 1);
+      ti = max(ti, (d+2)/2);
     }
   }
-  // make s step from ai, check whether it is better reach from b 
+  // make s step from ai, check whether it is better reached from b 
   inline bool better_from_b(int s) const {
     assert(s <= jlimt());
-    int d1 = d - i - s;
-    int d2 = i;
-    cost_t from_b = gb + min(d1, d2) * ROOT_TWO + (d1 + d2 - min(d1, d2)) * ONE;
+    int d1 = d - i - s + 1;
+    int d2 = i - 1;
+    int dia = min(d1, d2);
+    cost_t from_b = gb + dia * ROOT_TWO + (d1 + d2 - (dia<<1) + 1) * ONE;
     return from_b <= ga + i*ROOT_TWO + s*ONE; 
   }
 
@@ -68,11 +74,11 @@ struct Constraint2 {
     if (i < 0) return true; // no applicable constraint
     if (++diagCnt >= maxDiag) return false;
     // next diagonal move is better reached from b
-    if (++i > ti) return false;
+    if (++i >= ti) return false;
     // next diag move:
     // 1. passed the intersection;
     // 2. cardinal move until the jump limit is better reached from a;
-    if (i >= d || i >= L) {
+    if (i == d || i == L) {
       deactivate();
       return true;
     }
@@ -105,6 +111,8 @@ class online_jps_pruner2 {
 public:
   Constraint2 north, south, east, west, h, v;
   void setup(Constraint2& c, cost_t ga, cost_t gb, cost_t jumpcost) {
+    // if the new constraint applicable, update, 
+    // otherwise deactivate
     if (ga + jumpcost > gb) {
       c.ga = ga, c.gb = gb, c.dC = jumpcost; 
       c.d = jumpcost / ONE;
@@ -112,12 +120,13 @@ public:
       c.calc_ti();
       static const uint32_t div = (ONE<<1) - ROOT_TWO;
       // L = floor((ga+d-gb)/(2-sqrt(2))), -1 to deal with rounding error
-      c.L = (c.ga + c.dC - c.gb - 1) / div;
+      c.L = (c.ga + c.dC - c.gb + div - 1) / div;
       // TODO: replace "false" by condtion:
       // [b, b+d] are obstacle free
       if (ga + ROOT_TWO*c.d > gb + jumpcost && false)
         c.maxDiag = min(c.maxDiag, c.d);
     }
+    else c.deactivate();
   }
   bool t_labelv, t_labelh; // store the original label before setting artificial obstacle
   int t_mapid, t_rmapid;
@@ -145,11 +154,11 @@ public:
    * the new d:  number of cardinal step from ai to b'
    *
    */
-  inline void update_constraint(Constraint2& c, int dx, int dy, int ai2b_) {
+  inline void update_constraint(Constraint2& c, int dx, int dy, int ai2b_, cost_t known_gb) {
     int l = min(dx, dy);
-    cost_t dist = l * ROOT_TWO + (dx + dy - l) * ONE;
+    cost_t dist = l * ROOT_TWO + (dx + dy - (l<<1)) * ONE;
     cost_t new_ga = c.ga + c.i * ROOT_TWO;
-    cost_t new_gb = c.gb + dist + ONE;
+    cost_t new_gb = min(known_gb, c.gb + dist + ONE);
     setup(c, new_ga, new_gb, ai2b_*ONE);
   }
 
@@ -181,38 +190,53 @@ public:
    *  1.2 try to resue the current constraint if we stop before hitting jlimit;
    * 2. update the constraint if we can have a stronger bound on node_id,
    *   e.g. it has a smaller gvalue due to the previous expansion;
+   * return true if continue, false terminate the expansion
    */
-  inline void after_scanv(gridmap* rmap, uint32_t node_id, uint32_t &jpid) {
+  inline bool after_scanv(gridmap* rmap, uint32_t node_id, 
+      uint32_t &jpid, cost_t& cost) {
     if (v.i>0) { // the constraint is active
       rmap->set_label(t_rmapid, t_labelv); // 1.1
       if ((int)jump_step < v.jlimt()) {
         if (v.better_from_b(jump_step)) {
           int dy = v.i-1;
           int dx = v.d-v.i-jump_step+1;
-          update_constraint(v, dx, dy, jump_step);
+          update_constraint(v, dx, dy, jump_step, global::query::gval(node_id));
+          if (v.dominated()) return false;
+          jpid = INF;
         }
         else { // the constraint is no longer applicable
           v.deactivate();
+          return true;
         }
       }
+      // if (v.better_from_b(0)) return false;
+      // if (v.i > v.ti) return false;
     }
     // TODO: 2
+    return true;
   }
 
-  inline void after_scanh(gridmap* map, uint32_t node_id, uint32_t &jpid) {
+  inline bool after_scanh(gridmap* map, uint32_t node_id, 
+      uint32_t &jpid, cost_t& cost) {
     if (h.i>0) {
       map->set_label(t_mapid, t_labelh);
       if ((int)jump_step < h.jlimt()) {
         if (h.better_from_b(jump_step)) {
           int dy = h.i-1;
           int dx = h.d-h.i-jump_step+1;
-          update_constraint(h, dx, dy, jump_step);
+          update_constraint(h, dx, dy, jump_step, global::query::gval(node_id));
+          if (h.dominated()) return false;
+          jpid = INF;
         }
         else {
           h.deactivate();
+          return true;
         }
       }
+      // if (h.i > h.ti) return false;
+      // if (h.better_from_b(0)) return false;
     }
+    return true;
   }
 };
 }

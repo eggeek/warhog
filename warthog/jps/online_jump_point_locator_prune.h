@@ -20,7 +20,6 @@ class online_jump_point_locator_prune
 	public: 
 		online_jump_point_locator_prune(gridmap* map, online_jps_pruner* pruner, blocklist* np);
 		~online_jump_point_locator_prune();
-    uint32_t scan_cnt;
 
 		void
 		jump(warthog::jps::direction d, uint32_t node_id, uint32_t goalid, 

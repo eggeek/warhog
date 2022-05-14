@@ -8,6 +8,7 @@
 
 typedef warthog::online_jump_point_locator_prune2 lp;
 namespace G = global::query;
+namespace S = global::statis;
 
 lp::online_jump_point_locator_prune2(
 gridmap* map, 
@@ -200,7 +201,7 @@ lp::__jump_east(uint32_t node_id,
 
 	uint32_t& num_steps = jp->jump_step;
   num_steps = jumpnode_id - node_id;
-  this->scan_cnt += (num_steps >> 5);
+  S::scan_cnt += (num_steps >> 5);
 	uint32_t goal_dist = goal_id - node_id;
 	if(num_steps > goal_dist)
 	{
@@ -274,7 +275,7 @@ lp::__jump_west(uint32_t node_id,
 	uint32_t& num_steps = jp->jump_step;
   num_steps = node_id - jumpnode_id;
 	uint32_t goal_dist = node_id - goal_id;
-  this->scan_cnt += (num_steps >> 5);
+  S::scan_cnt += (num_steps >> 5);
 	if(num_steps > goal_dist)
 	{
     num_steps = goal_dist;
@@ -342,20 +343,23 @@ lp::jump_northeast(uint32_t node_id,
     jp->before_scanv(rmap_, rnext_id, 1);
 		__jump_north(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     jp->jumpcost = cost1;
-    jp->after_scanv(rmap_, next_id-jp->jump_step*mapw, jp_id1);
-		if(jp_id1 != warthog::INF) { break; }
+    if (!jp->after_scanv(rmap_, next_id-jp->jump_step*mapw, jp_id1, cost1)) {
+      jumpnode_id = warthog::INF; jumpcost = 0; return;
+    }
 
     jp->before_scanh(map_, next_id, 1);
 		__jump_east(next_id, goal_id, jp_id2, cost2, map_);
     jp->jumpcost = cost2;
-    jp->after_scanh(map_, next_id+jp->jump_step, jp_id2);
-		if(jp_id2 != warthog::INF) { break; }
+    if (!jp->after_scanh(map_, next_id+jp->jump_step, jp_id2, cost2)) {
+      jumpnode_id = warthog::INF; jumpcost = 0; return;
+    }
+    if ((jp_id1 & jp_id2) != warthog::INF) break;
 
 		// couldn't move in either straight dir; node_id is an obstacle
 		if(!(cost1 && cost2)) { next_id = warthog::INF; break; }
 
 	}
-  this->scan_cnt += num_steps;
+  S::scan_cnt += num_steps;
 	jumpnode_id = next_id;
 	jumpcost = num_steps*warthog::ROOT_TWO;
 }
@@ -404,19 +408,22 @@ lp::jump_northwest(uint32_t node_id,
     jp->before_scanv(rmap_, rnext_id, 1);
 		__jump_north(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     jp->jumpcost = cost1;
-    jp->after_scanv(rmap_, next_id-jp->jump_step*mapw, jp_id1);
-		if(jp_id1 != warthog::INF) { break; }
+    if (!jp->after_scanv(rmap_, next_id-jp->jump_step*mapw, jp_id1, cost1)) {
+      jumpnode_id = warthog::INF; jumpcost = 0; return;
+    }
 
     jp->before_scanh(map_, next_id, -1);
 		__jump_west(next_id, goal_id, jp_id2, cost2, map_);
     jp->jumpcost = cost2;
-    jp->after_scanh(map_, next_id+jp->jump_step, jp_id2);
-		if(jp_id2 != warthog::INF) { break; }
+    if (!jp->after_scanh(map_, next_id-jp->jump_step, jp_id2, cost2)) {
+      jumpnode_id = warthog::INF; jumpcost = 0; return;
+    }
+    if ((jp_id1 & jp_id2) != warthog::INF) break;
 
 		// couldn't move in either straight dir; node_id is an obstacle
 		if(!(cost1 && cost2)) { next_id = warthog::INF; break; }
 	}
-  this->scan_cnt += num_steps;
+  S::scan_cnt += num_steps;
 	jumpnode_id = next_id;
 	jumpcost = num_steps*warthog::ROOT_TWO;
 }
@@ -467,19 +474,22 @@ lp::jump_southeast(uint32_t node_id,
     jp->before_scanv(rmap_, rnext_id, -1);
 		__jump_south(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     jp->jumpcost = cost1;
-    jp->after_scanv(rmap_, next_id-jp->jump_step*mapw, jp_id1);
-		if(jp_id1 != warthog::INF) { break; }
+    if (!jp->after_scanv(rmap_, next_id+jp->jump_step*mapw, jp_id1, cost1)) {
+      jumpnode_id = warthog::INF; jumpcost = 0; return;
+    }
 
     jp->before_scanh(map_, next_id, 1);
 		__jump_east(next_id, goal_id, jp_id2, cost2, map_);
     jp->jumpcost = cost2;
-    jp->after_scanh(map_, next_id+jp->jump_step, jp_id2);
-		if(jp_id2 != warthog::INF) { break; }
+    if (!jp->after_scanh(map_, next_id+jp->jump_step, jp_id2, cost2)) {
+      jumpnode_id = warthog::INF; jumpcost = 0; return;
+    }
+    if ((jp_id1 & jp_id2) != warthog::INF) break;
 
 		// couldn't move in either straight dir; node_id is an obstacle
 		if(!(cost1 && cost2)) { next_id = warthog::INF; break; }
 	}
-  this->scan_cnt += num_steps;
+  S::scan_cnt += num_steps;
 	jumpnode_id = next_id;
 	jumpcost = num_steps*warthog::ROOT_TWO;
 }
@@ -529,19 +539,22 @@ lp::jump_southwest(uint32_t node_id,
     jp->before_scanv(rmap_, rnext_id, -1);
 		__jump_south(rnext_id, rgoal_id, jp_id1, cost1, rmap_);
     jp->jumpcost = cost1;
-    jp->after_scanv(rmap_, next_id-jp->jump_step*mapw, jp_id1);
-		if(jp_id1 != warthog::INF) { break; }
+    if (!jp->after_scanv(rmap_, next_id+jp->jump_step*mapw, jp_id1, cost1)) {
+      jumpnode_id = warthog::INF; jumpcost = 0; return;
+    }
 
     jp->before_scanh(map_, next_id, -1);
 		__jump_west(next_id, goal_id, jp_id2, cost2, map_);
     jp->jumpcost = cost2;
-    jp->after_scanh(map_, next_id+jp->jump_step, jp_id2);
-		if(jp_id2 != warthog::INF) { break; }
+    if (!jp->after_scanh(map_, next_id-jp->jump_step, jp_id2, cost2)) {
+      jumpnode_id = warthog::INF; jumpcost = 0; return;
+    }
+    if ((jp_id1 & jp_id2) != warthog::INF) break;
 
 		// couldn't move in either straight dir; node_id is an obstacle
 		if(!(cost1 && cost2)) { next_id = warthog::INF; break; }
 	}
-  this->scan_cnt += num_steps;
+  S::scan_cnt += num_steps;
 	jumpnode_id = next_id;
 	jumpcost = num_steps*warthog::ROOT_TWO;
 }
