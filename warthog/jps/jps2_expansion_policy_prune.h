@@ -42,6 +42,7 @@ class jps2_expansion_policy_prune
 			nodepool_->clear();
 		}
 
+    inline blocklist* get_nodepool() { return nodepool_; }
 
 		void 
 		expand(warthog::search_node*, warthog::problem_instance*);

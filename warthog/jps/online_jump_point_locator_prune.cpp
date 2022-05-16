@@ -202,7 +202,7 @@ lp::__jump_east(uint32_t node_id,
 	}
 
 	uint32_t num_steps = jumpnode_id - node_id;
-  G::scan_cnt = (num_steps >> 5);
+  G::scan_cnt += (num_steps >> 5);
 	uint32_t goal_dist = goal_id - node_id;
 	if(num_steps > goal_dist)
 	{

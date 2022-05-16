@@ -6,12 +6,14 @@
 
 #include "experiment.h"
 #include "gridmap.h"
-#include "statistic.h"
+#include "global.h"
 #include "jps_expansion_policy_simple.h"
 #include "jps_expansion_policy_prune.h"
+#include "jps_expansion_policy_prune2.h"
 #include "jps_expansion_policy.h"
 #include "jps2_expansion_policy.h"
 #include "jps2_expansion_policy_prune.h"
+#include "jps2_expansion_policy_prune2.h"
 
 #include "online_jump_point_locator_prune.h"
 #include "online_jump_point_locator2_prune.h"
@@ -23,7 +25,8 @@
 #include "neo_astar.h"
 #include "dijkstra.h"
 using namespace std;
-
+namespace G = global;
+namespace S = global::statis;
 namespace TEST_JLIMIT {
 
 struct node {
@@ -35,9 +38,12 @@ namespace w=warthog;
 
 struct ExpData {
   long long exp, gen, touch, scan;
+  // count subopt gval:
+  long long subopt_expd, subopt_touch;
   double time;
   void reset() {
     exp = gen = touch = scan = 0;
+    subopt_expd = subopt_touch = 0;
   }
   template <typename H, typename E>
   void update(w::flexible_astar<H, E>* alg, long long cnts) {
@@ -48,12 +54,26 @@ struct ExpData {
     scan += cnts;
   }
 
+  void update_subopt() {
+    subopt_expd += G::statis::subopt_expd;
+    subopt_touch += G::statis::subopt_touch;
+    scan += G::statis::scan_cnt;
+  }
+
   string str() {
     string res = "";
     res += to_string(exp) + "\t" + 
            to_string(gen) + "\t" + 
            to_string(touch) + "\t" + 
            to_string((long long)time) + "\t" + to_string(scan);
+    return res;
+  }
+
+  string subopt_str() {
+    string res = "";
+    res += to_string(subopt_touch) + "\t" +
+           to_string(subopt_expd) + "\t" +
+           to_string(scan);
     return res;
   }
 };
@@ -66,77 +86,102 @@ double expect_len, double actual_len) {
   cerr << "expected: " << expect_len << ", actual: " << actual_len << endl;
 }
 
+void sanity_checking(int idx, w::gridmap* mptr, node s, node t, w::cost_t expect, w::cost_t actual) {
+  if (fabs(expect - actual) > eps) {
+    print_query(idx, mptr->filename(), mptr->header_width(), mptr->header_height(),
+        s.x, s.y, t.x, t.y, expect, actual);
+  }
+  REQUIRE(fabs(expect - actual) < eps);
+}
+
 inline void run(w::gridmap& map, vector<node>& s, vector<node>& t, bool verbose=false) {
 
-  ExpData d_jps, d_jps2, d_jpsprune, d_jps2prune;
-  w::jps_expansion_policy_simple jpss(&map);
-  w::jps_expansion_policy jps(&map);
-  w::jps2_expansion_policy jps2(&map);
-  w::jps_expansion_policy_prune jps_prune(&map);
-  w::jps2_expansion_policy_prune jps2_prune(&map);
+  /* Heuristic variants */
   w::octile_heuristic heuristic1(map.width(), map.height());
   // w::jps_heuristic jpsh(jps_prune.get_mapper());
 
-  w::flexible_astar<w::octile_heuristic, w::jps_expansion_policy_prune> neoAstar(&heuristic1, &jps_prune);
-  w::flexible_astar<w::octile_heuristic, w::jps2_expansion_policy_prune> neoAstar2(&heuristic1, &jps2_prune);
-  w::flexible_astar<w::octile_heuristic, w::jps_expansion_policy_simple> simpleA(&heuristic1, &jpss);
-  w::flexible_astar<w::octile_heuristic,w::jps_expansion_policy> astar1(&heuristic1, &jps);
-  w::flexible_astar<w::octile_heuristic,w::jps2_expansion_policy> astar2(&heuristic1, &jps2);
+  /* JPS variants */
+  w::jps_expansion_policy_simple ep_jpss(&map);
+  w::jps_expansion_policy ep_jps(&map);
+  w::jps_expansion_policy_prune ep_cjps(&map);
+  w::jps_expansion_policy_prune2 ep_c2jps(&map);
 
-  neoAstar.set_verbose(verbose);
-  neoAstar2.set_verbose(verbose);
-  astar1.set_verbose(verbose);
-  astar2.set_verbose(verbose);
+  w::flexible_astar<w::octile_heuristic,w::jps_expansion_policy> jps(&heuristic1, &ep_jps);
+  w::flexible_astar<w::octile_heuristic, w::jps_expansion_policy_prune> cjps(&heuristic1, &ep_cjps);
+  w::flexible_astar<w::octile_heuristic, w::jps_expansion_policy_prune2> c2jps(&heuristic1, &ep_c2jps);
+  w::flexible_astar<w::octile_heuristic, w::jps_expansion_policy_simple> jpss(&heuristic1, &ep_jpss);
+  jps.set_verbose(verbose);
+  cjps.set_verbose(verbose);
+  c2jps.set_verbose(verbose);
+  jpss.set_verbose(verbose);
 
-  d_jps.reset(), d_jps2.reset(), d_jpsprune.reset(), d_jps2prune.reset();
+  /* JPS2 variants */
+  w::jps2_expansion_policy ep_jps2(&map);
+  w::jps2_expansion_policy_prune ep_cjps2(&map);
+  w::jps2_expansion_policy_prune2 ep_c2jps2(&map);
+
+  w::flexible_astar<w::octile_heuristic, w::jps2_expansion_policy> jps2(&heuristic1, &ep_jps2);
+  w::flexible_astar<w::octile_heuristic, w::jps2_expansion_policy_prune> cjps2(&heuristic1, &ep_cjps2);
+  w::flexible_astar<w::octile_heuristic, w::jps2_expansion_policy_prune2> c2jps2(&heuristic1, &ep_c2jps2);
+
+  jps2.set_verbose(verbose);
+  cjps2.set_verbose(verbose);
+  c2jps2.set_verbose(verbose);
+
+  ExpData cnt_jps, cnt_cjps, cnt_c2jps, cnt_jps2, cnt_cjps2, cnt_c2jps2;
+  ExpData* cnts[] = {&cnt_jps, &cnt_cjps, &cnt_c2jps, &cnt_jps2, &cnt_cjps2, &cnt_c2jps2};
+  for (auto &i: cnts) i->reset();
+
   for (int i=0; i<(int)s.size(); i++) {
-    jps.get_locator()->scan_cnt = 0;
-    jps2.get_locator()->scan_cnt = 0;
-    jps_prune.get_locator()->scan_cnt = 0;
-    jps2_prune.get_locator()->scan_cnt = 0;
-
     int sid = s[i].y * map.header_width() + s[i].x;
     int tid = t[i].y * map.header_width() + t[i].x;
 
-    // jpsh.set_target(map.to_padded_id(tid));
-    double len_prune = neoAstar.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
-    d_jpsprune.update(&neoAstar, jps_prune.get_locator()->scan_cnt);
+    /* Run JPS variants */
+    S::clear();
+    G::query::nodepool = ep_jps.get_nodepool();
+    double len_jps = jps.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
+    cnt_jps.update(&jps, S::scan_cnt);
 
-    // double len_prune2 = neoAstar2.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
-    // d_jps2prune.update(&neoAstar2, jps2_prune.get_locator()->scan_cnt);
+    S::clear();
+    G::query::nodepool = ep_cjps.get_nodepool();
+    double len_cjps = cjps.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
+    cnt_cjps.update(&cjps, S::scan_cnt);
+    sanity_checking(i, &map, s[i], t[i], len_jps, len_cjps);
 
-    double len = astar1.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
-    d_jps.update(&astar1, jps.get_locator()->scan_cnt);
+    S::clear();
+    G::query::nodepool = ep_c2jps.get_nodepool();
+    double len_c2jps = c2jps.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
+    cnt_c2jps.update(&c2jps, S::scan_cnt);
+    sanity_checking(i, &map, s[i], t[i], len_jps, len_c2jps);
 
-    double lens = simpleA.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
 
-    if (fabs(lens - len) > eps) {
-      print_query(i, map.filename(), map.header_width(), map.header_height(), 
-          s[i].x, s[i].y, t[i].x, t[i].y, len_prune, len);
-    }
-    REQUIRE(fabs(len_prune - lens) < eps);
+    /* Run JPS2 variants */
+    S::clear();
+    G::query::nodepool = ep_jps2.get_nodepool();
+    double len_jps2 = jps2.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
+    cnt_jps2.update(&jps2, S::scan_cnt);
 
-    // astar2.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
-    // d_jps2.update(&astar2, jps2.get_locator()->scan_cnt);
+    S::clear();
+    G::query::nodepool = ep_cjps2.get_nodepool();
+    double len_cjps2 = cjps2.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
+    cnt_cjps2.update(&cjps2, S::scan_cnt);
+    sanity_checking(i, &map, s[i], t[i], len_jps2, len_cjps2);
 
-    if (fabs(len_prune - len) > eps) {
-      print_query(i, map.filename(), map.header_width(), map.header_height(), 
-          s[i].x, s[i].y, t[i].x, t[i].y, len_prune, len);
-    }
-    // if (fabs(len_prune2 - len) > eps) {
-    //   print_query(i, map.filename(), map.header_width(), map.header_height(),
-    //       s[i].x, s[i].y, t[i].x, t[i].y, len, len_prune2);
-    // }
-    REQUIRE(fabs(len_prune - len) < eps);
-    // REQUIRE(fabs(len_prune2 - len) < eps);
+    S::clear();
+    G::query::nodepool = ep_c2jps2.get_nodepool();
+    double len_c2jps2 = c2jps2.get_length(map.to_padded_id(sid), map.to_padded_id(tid));
+    cnt_c2jps2.update(&c2jps2, S::scan_cnt);
+    sanity_checking(i, &map, s[i], t[i], len_jps2, len_c2jps2);
 
   }
   cout << "--------------------------- " << map.filename() << endl;
   cout << "algo\texp\tgen\ttouch\ttime\tscan\n" << endl;
-  cout << "jlimit\t" << d_jpsprune.str() << endl;
-  cout << "normal\t" << d_jps.str() << endl;
-  cout << "jlimit2\t" << d_jps2prune.str() << endl;
-  cout << "normal2\t" << d_jps2.str() << endl;
+  cout << "jps\t" << cnt_jps.str() << endl;
+  cout << "cjps\t" << cnt_cjps.str() << endl;
+  cout << "c2jps\t" << cnt_c2jps.str() << endl;
+  cout << "jps2\t" << cnt_jps2.str() << endl;
+  cout << "cjps2\t" << cnt_cjps2.str() << endl;
+  cout << "c2jps2\t" << cnt_c2jps2.str() << endl;
 }
 
 inline void run_scen(w::gridmap& gridmap, w::scenario_manager& scenmgr) {
@@ -161,8 +206,9 @@ TEST_CASE("gval") {
     {"./maps/starcraft/Caldera.map", "./scenarios/movingai/starcraft/Caldera.map.scen", "min"},
     {"./maps/iron/scene_sp_sax_04.map", "./scenarios/movingai/iron/scene_sp_sax_04.map.scen", "max"},
     {"./maps/iron/scene_mp_2p_02.map", "./scenarios/movingai/iron/scene_mp_2p_02.map.scen", "min"},
+    {"./testcases/maps/diag-random-512.map", "./data/diag-random-512.scen", "synthetic"},
   };
-  string header = "map,jpsE,cjpsE,jpsT,cjpsT,desc";
+  string header = "map\tsubopt_touch\tsubopt_expd\tscnt\talg";
   cout << header << endl;
   for (auto it: cases) {
     string mpath = it[0];
@@ -172,19 +218,32 @@ TEST_CASE("gval") {
     warthog::gridmap* map = new warthog::gridmap(mpath.c_str());
     w::octile_heuristic heur(map->width(), map->height());
 
-    // w::jps_expansion_policy ep(map);
-    // w::jps_expansion_policy_prune cep(map);
-    // w::flexible_astar<w::octile_heuristic, w::jps_expansion_policy> jps(&heur, &ep);
-    // w::flexible_astar<w::octile_heuristic, w::jps_expansion_policy_prune> cjps(&heur, &cep);
+    /* JPS variants */
+    w::jps_expansion_policy ep(map);
+    w::jps_expansion_policy_prune cep(map);
+    w::jps_expansion_policy_prune2 c2ep(map);
+    w::flexible_astar<w::octile_heuristic, w::jps_expansion_policy> jps(&heur, &ep);
+    w::flexible_astar<w::octile_heuristic, w::jps_expansion_policy_prune> cjps(&heur, &cep);
+    w::flexible_astar<w::octile_heuristic, w::jps_expansion_policy_prune2> c2jps(&heur, &c2ep);
 
-    w::jps2_expansion_policy ep(map);
-    w::jps2_expansion_policy_prune cep(map);
-    w::flexible_astar<w::octile_heuristic, w::jps2_expansion_policy> jps(&heur, &ep);
-    w::flexible_astar<w::octile_heuristic, w::jps2_expansion_policy_prune> cjps(&heur, &cep);
+    /* JPS2 variants */
+    w::jps2_expansion_policy ep2(map);
+    w::jps2_expansion_policy_prune cep2(map);
+    w::jps2_expansion_policy_prune2 c2ep2(map);
+    w::flexible_astar<w::octile_heuristic, w::jps2_expansion_policy> jps2(&heur, &ep2);
+    w::flexible_astar<w::octile_heuristic, w::jps2_expansion_policy_prune> cjps2(&heur, &cep2);
+    w::flexible_astar<w::octile_heuristic, w::jps2_expansion_policy_prune2> c2jps2(&heur, &c2ep2);
+
     w::Dijkstra dij(mpath);
     w::scenario_manager smgr;
     smgr.load_scenario(spath.c_str());
-    long long cnt_jps_expd = 0, cnt_cjps_expd = 0, cnt_jps_touch = 0, cnt_cjps_touch = 0;
+
+    ExpData cnt_jps, cnt_cjps, cnt_c2jps,
+            cnt_jps2, cnt_cjps2, cnt_c2jps2;
+
+    ExpData* cnts[] = {&cnt_jps, &cnt_cjps, &cnt_c2jps, &cnt_jps2, &cnt_cjps2, &cnt_c2jps2};
+    for (auto &i: cnts) i->reset();
+
     for (int i=(int)smgr.num_experiments()-50; i<(int)smgr.num_experiments(); i++) {
       w::experiment* exp = smgr.get_experiment(i);
       int sx = exp->startx(), sy = exp->starty();
@@ -193,20 +252,50 @@ TEST_CASE("gval") {
       uint32_t tid = map->to_padded_id(tx, ty);
       dij.run(sid);
 
-      statis::dist = vector<warthog::cost_t>(dij.dist);
+      /* JPS variants */
+      G::statis::clear();
+      G::statis::dist = vector<warthog::cost_t>(dij.dist);
+      G::query::nodepool = ep.get_nodepool();
       jps.get_length(sid, tid);
-      cnt_jps_expd += statis::subopt_expd;
-      cnt_jps_touch += statis::subopt_touch;
-      statis::clear();;
+      cnt_jps.update_subopt();
 
-
-      statis::dist = vector<warthog::cost_t>(dij.dist);
+      G::statis::clear();
+      G::statis::dist = vector<warthog::cost_t>(dij.dist);
+      G::query::nodepool = cep.get_nodepool();
       cjps.get_length(sid, tid);
-      cnt_cjps_expd += statis::subopt_expd;
-      cnt_cjps_touch += statis::subopt_touch;
-      statis::clear();;
+      cnt_cjps.update_subopt();
+
+      G::statis::clear();
+      G::statis::dist = vector<warthog::cost_t>(dij.dist);
+      G::query::nodepool = c2ep.get_nodepool();
+      c2jps.get_length(sid, tid);
+      cnt_c2jps.update_subopt();
+
+      /* JPS2 variants */
+      G::statis::clear();
+      G::statis::dist = vector<warthog::cost_t>(dij.dist);
+      G::query::nodepool = ep2.get_nodepool();
+      jps2.get_length(sid, tid);
+      cnt_jps2.update_subopt();
+
+      G::statis::clear();
+      G::statis::dist = vector<warthog::cost_t>(dij.dist);
+      G::query::nodepool = cep2.get_nodepool();
+      cjps2.get_length(sid, tid);
+      cnt_cjps2.update_subopt();
+
+      G::statis::clear();
+      G::statis::dist = vector<warthog::cost_t>(dij.dist);
+      G::query::nodepool = c2ep2.get_nodepool();
+      c2jps2.get_length(sid, tid);
+      cnt_c2jps2.update_subopt();
     }
-    cout << mpath << "," << cnt_jps_expd << "," << cnt_cjps_expd << "," << cnt_jps_touch << "," << cnt_cjps_touch << "," << desc << endl;
+    cout << mpath << "\t" << cnt_jps.subopt_str() << "\tjps" << endl;
+    cout << mpath << "\t" << cnt_cjps.subopt_str() << "\tcjps" << endl;
+    cout << mpath << "\t" << cnt_c2jps.subopt_str() << "\tc2jps" << endl;
+    cout << mpath << "\t" << cnt_jps2.subopt_str() << "\tjps2" << endl;
+    cout << mpath << "\t" << cnt_cjps2.subopt_str() << "\tcjps2" << endl;
+    cout << mpath << "\t" << cnt_c2jps2.subopt_str() << "\tc2jps2" << endl;
   }
 }
 
@@ -223,7 +312,6 @@ TEST_CASE("jlimit-scen") {
     {"./maps/starcraft/IceMountain.map", "./scenarios/movingai/starcraft/IceMountain.map.scen"},
     {"../maps/random10/random512-10-0.map", "../scenarios/movingai/random10/random512-10-0.map.scen"},
     {"../maps/random20/random512-20-0.map", "../scenarios/movingai/random20/random512-20-0.map.scen"},
-    {"../maps/random30/random512-30-8.map", "../scenarios/movingai/random30/random512-30-8.map.scen"},
     {"../maps/street/London_1_256.map", "../scenarios/movingai/street/London_1_256.map.scen"},
     {"../maps/mazes/maze512-1-0.map", "../scenarios/movingai/mazes/maze512-1-0.map.scen"},
     {"../maps/rooms/16room_000.map", "../scenarios/movingai/rooms/16room_000.map.scen"},
@@ -417,7 +505,7 @@ TEST_CASE("jlimit-exp") {
 
     for (const auto& q: queries) {
 
-      jps1.get_locator()->scan_cnt = 0; 
+      S::clear();;
       node s = get<0>(q), t = get<1>(q);
       double ans = get<2>(q);
 
@@ -425,7 +513,7 @@ TEST_CASE("jlimit-exp") {
       int gid = t.y * map.header_width() + t.x;
       double len = astar.get_length(map.to_padded_id(sid), map.to_padded_id(gid));
       REQUIRE(fabs(len - ans) <= eps);
-      scnt += jps1.get_locator()->scan_cnt;
+      scnt += S::scan_cnt;
     }
     cerr << "scan: " << scnt << endl;
   }
