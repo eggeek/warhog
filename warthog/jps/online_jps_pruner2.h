@@ -201,8 +201,8 @@ public:
           int dy = v.i-1;
           int dx = v.d-v.i-jump_step+1;
           update_constraint(v, dx, dy, jump_step, global::query::gval(node_id));
-          if (v.dominated()) return false;
           jpid = INF;
+          if (v.dominated()) return false;
         }
         else { // the constraint is no longer applicable
           v.deactivate();
@@ -225,8 +225,8 @@ public:
           int dy = h.i-1;
           int dx = h.d-h.i-jump_step+1;
           update_constraint(h, dx, dy, jump_step, global::query::gval(node_id));
-          if (h.dominated()) return false;
           jpid = INF;
+          if (h.dominated()) return false;
         }
         else {
           h.deactivate();
