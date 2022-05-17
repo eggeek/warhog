@@ -316,6 +316,7 @@ lp::jump_northeast(uint32_t node_id,
 	uint32_t rnext_id = map_id_to_rmap_id(next_id);
 	uint32_t rgoal_id = map_id_to_rmap_id(goal_id);
 	uint32_t rmapw = rmap_->width();
+  G::cur_diag_gval = pa->get_g();
 
   jp->v = jp->north;
   jp->h = jp->east;
@@ -328,6 +329,7 @@ lp::jump_northeast(uint32_t node_id,
 	while(true)
 	{
 		num_steps++;
+    G::cur_diag_gval += ROOT_TWO;
 		next_id = next_id - mapw + 1;
 		rnext_id = rnext_id + rmapw + 1;
 
@@ -384,6 +386,7 @@ lp::jump_northwest(uint32_t node_id,
 	uint32_t rnext_id = map_id_to_rmap_id(next_id);
 	uint32_t rgoal_id = map_id_to_rmap_id(goal_id);
 	uint32_t rmapw = rmap_->width();
+  G::cur_diag_gval = pa->get_g();
 
   jp->v = jp->north;
   jp->h = jp->west;
@@ -394,6 +397,7 @@ lp::jump_northwest(uint32_t node_id,
 	while(true)
 	{
 		num_steps++;
+    G::cur_diag_gval += ROOT_TWO;
 		next_id = next_id - mapw - 1;
 		rnext_id = rnext_id - (rmapw - 1);
 
@@ -449,6 +453,7 @@ lp::jump_southeast(uint32_t node_id,
 	uint32_t rnext_id = map_id_to_rmap_id(next_id);
 	uint32_t rgoal_id = map_id_to_rmap_id(goal_id);
 	uint32_t rmapw = rmap_->width();
+  G::cur_diag_gval = pa->get_g();
 
   jp->v = jp->south;
   jp->h = jp->east;
@@ -460,6 +465,7 @@ lp::jump_southeast(uint32_t node_id,
 	while(true)
 	{
 		num_steps++;
+    G::cur_diag_gval += ROOT_TWO;
 		next_id = next_id + mapw + 1;
 		rnext_id = rnext_id + rmapw - 1;
 
@@ -514,6 +520,7 @@ lp::jump_southwest(uint32_t node_id,
 	uint32_t rnext_id = map_id_to_rmap_id(next_id);
 	uint32_t rgoal_id = map_id_to_rmap_id(goal_id);
 	uint32_t rmapw = rmap_->width();
+  G::cur_diag_gval = pa->get_g();
 
   jp->v = jp->south;
   jp->h = jp->west;
@@ -524,6 +531,7 @@ lp::jump_southwest(uint32_t node_id,
 	while(true)
 	{
 		num_steps++;
+    G::cur_diag_gval += ROOT_TWO;
 		next_id = next_id + mapw - 1;
 		rnext_id = rnext_id - (rmapw + 1);
 

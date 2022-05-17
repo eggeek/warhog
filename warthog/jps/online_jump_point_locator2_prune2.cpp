@@ -361,6 +361,7 @@ jlp::jump_northeast(
 	uint32_t goal_id = current_goal_id_;
 	uint32_t rnode_id = current_rnode_id_;
 	uint32_t rgoal_id = current_rgoal_id_;
+  G::cur_diag_gval = pa->get_g();
 
 	// first 3 bits of first 3 bytes represent a 3x3 cell of tiles
 	// from the grid. node_id at centre. Assume little endian format.
@@ -424,6 +425,7 @@ jlp::__jump_northeast(
 	while(true)
 	{
 		num_steps++;
+    G::cur_diag_gval += ROOT_TWO;
 		node_id = node_id - mapw + 1;
 		rnode_id = rnode_id + rmapw + 1;
 
@@ -476,6 +478,7 @@ jlp::jump_northwest(
 	uint32_t goal_id = current_goal_id_;
 	uint32_t rnode_id = current_rnode_id_;
 	uint32_t rgoal_id = current_rgoal_id_;
+  G::cur_diag_gval = pa->get_g();
 
   jp->v = jp->north;
   jp->h = jp->west;
@@ -539,6 +542,7 @@ jlp::__jump_northwest(
 	while(true)
 	{
 		num_steps++;
+    G::cur_diag_gval += ROOT_TWO;
 		node_id = node_id - mapw - 1;
 		rnode_id = rnode_id - (rmapw - 1);
 
@@ -587,6 +591,7 @@ jlp::jump_southeast(
 	uint32_t goal_id = current_goal_id_;
 	uint32_t rnode_id = current_rnode_id_;
 	uint32_t rgoal_id = current_rgoal_id_;
+  G::cur_diag_gval = pa->get_g();
 
 	// first 3 bits of first 3 bytes represent a 3x3 cell of tiles
 	// from the grid. next_id at centre. Assume little endian format.
@@ -651,6 +656,7 @@ jlp::__jump_southeast(
 	while(true)
 	{
 		num_steps++;
+    G::cur_diag_gval += ROOT_TWO;
 		node_id = node_id + mapw + 1;
 		rnode_id = rnode_id + rmapw - 1;
 
@@ -698,6 +704,7 @@ jlp::jump_southwest(
 	uint32_t goal_id = current_goal_id_;
 	uint32_t rnode_id = current_rnode_id_;
 	uint32_t rgoal_id = current_rgoal_id_;
+  G::cur_diag_gval = pa->get_g();
 	
 	// first 3 bits of first 3 bytes represent a 3x3 cell of tiles
 	// from the grid. next_id at centre. Assume little endian format.
@@ -760,6 +767,7 @@ jlp::__jump_southwest(
 	while(true)
 	{
 		num_steps++;
+    G::cur_diag_gval += ROOT_TWO;
 		node_id = node_id + mapw - 1;
 		rnode_id = rnode_id - (rmapw + 1);
 

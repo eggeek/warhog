@@ -43,6 +43,7 @@ namespace statis {
 namespace query {
   extern warthog::blocklist* nodepool;
   extern uint32_t startid, goalid;
+  extern warthog::cost_t cur_diag_gval;
   extern warthog::problem_instance* pi;
 
   inline warthog::cost_t gval(uint32_t id) {

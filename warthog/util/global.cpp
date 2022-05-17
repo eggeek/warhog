@@ -8,3 +8,4 @@ warthog::problem_instance* query::pi = nullptr;
 warthog::blocklist* query::nodepool = nullptr;
 uint32_t query::startid = warthog::INF;
 uint32_t query::goalid = warthog::INF;
+warthog::cost_t query::cur_diag_gval = warthog::INF;

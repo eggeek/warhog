@@ -215,6 +215,12 @@ public:
       }
     }
     // TODO: 2
+    else {
+      cost_t gb = global::query::gval(node_id);
+      if (global::query::cur_diag_gval+cost > gb) {
+        setup(v, global::query::cur_diag_gval, gb, cost);
+      }
+    }
     return true;
   }
 
@@ -234,6 +240,12 @@ public:
           h.deactivate();
           return true;
         }
+      }
+    }
+    else {
+      cost_t gb = global::query::gval(node_id);
+      if (global::query::cur_diag_gval+cost > gb) {
+        setup(h, global::query::cur_diag_gval, gb, cost);
       }
     }
     return true;
