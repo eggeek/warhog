@@ -47,9 +47,13 @@ struct Constraint2 {
    */
   inline void calc_ti() {
     // case 1: ti-1 <= d-ti
-    if (ga + ROOT_TWO >= gb + dC) {
-      ti = 0;
-      return;
+    if ((gb + dC + (ONE<<1)) < dC + ONE + ga + ROOT_TWO) {
+      if (ga + ROOT_TWO <= gb + dC + (ONE<<1) ) {
+        ti = (gb + dC + (ONE<<1) - (ga + ROOT_TWO) + (ONE<<1)-1) / (ONE<<1);
+      }
+      else {
+        ti = 0;
+      }
     }
     else {
       // case 2: ti-1 >= d-ti
@@ -209,8 +213,6 @@ public:
           return true;
         }
       }
-      // if (v.better_from_b(0)) return false;
-      // if (v.i > v.ti) return false;
     }
     // TODO: 2
     return true;
@@ -233,8 +235,6 @@ public:
           return true;
         }
       }
-      // if (h.i > h.ti) return false;
-      // if (h.better_from_b(0)) return false;
     }
     return true;
   }
