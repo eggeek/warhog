@@ -75,6 +75,7 @@ jps_exp_prune::expand(
 
 #ifdef CNT
         G::statis::update_subopt_touch(mynode->get_id(), current->get_g()+jumpcost);
+        G::statis::sanity_checking(mynode->get_id(), current->get_g()+jumpcost);
 #endif
         mynode->set_pdir(d);
 				neighbours_[num_neighbours_] = mynode;

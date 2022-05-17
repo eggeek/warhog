@@ -73,6 +73,7 @@ jps2_exp_prune2::expand(
 
 #ifdef CNT
     G::statis::update_subopt_touch(mynode->get_id(), current->get_g()+costs_.at(i));
+    G::statis::sanity_checking(mynode->get_id(), current->get_g()+costs_.at(i));
 #endif
 		// stupid hack
 		if((current->get_g() + costs_.at(i)) < mynode->get_g())

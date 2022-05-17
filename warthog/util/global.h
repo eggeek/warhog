@@ -15,10 +15,12 @@ namespace statis {
   extern uint32_t scan_cnt;
 
   inline void update_subopt_expd(uint32_t id, warthog::cost_t gval) {
+    assert(dist.empty() || id < dist.size());
     if (!dist.empty() && gval > dist[id]) subopt_expd++;
   }
 
   inline void update_subopt_touch(uint32_t id, warthog::cost_t gval) {
+    assert(dist.empty() || id < dist.size());
     if (!dist.empty() && gval > dist[id]) subopt_touch++;
   }
 
@@ -27,6 +29,14 @@ namespace statis {
     subopt_expd = 0;
     subopt_touch = 0;
     scan_cnt = 0;
+  }
+
+  inline void sanity_checking(uint32_t id, warthog::cost_t gval) {
+    if (!dist.empty() && gval < dist[id]) {
+      cerr << "invalid gval less than optimal: id=" << id << ", gval=" << gval << endl;
+      assert(false);
+      exit(1);
+    }
   }
 };
 
