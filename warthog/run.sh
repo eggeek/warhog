@@ -13,7 +13,7 @@ maps=(
   ./testcases/maps/diag-random-512.map
   ./testcases/maps/square-random-512.map
   ./testcases/maps/maze-random.map
-  ../maps/maze512/maze512-16-8.map
+  ../maps/maze512/maze512-16-0.map
 )
 
 queries=(
@@ -35,9 +35,11 @@ scens=(
 algs=(
   jps
   jps-prune
-  jps-prune0
-  # jps2
-  # jps2-prune
+  jps-prune2
+  # jps-simple
+  jps2
+  jps2-prune
+  jps2-prune2
 )
 data_dir="./data"
 out_dir="./output"
@@ -59,7 +61,6 @@ function gen_scen() {
 function run_domain() {
   domain=$1
   dname=$(basename -- $domain)
-  out_dir="./output/"
   for mpath in `ls ${domain}/*.map`; do
     mapname=$(basename -- $mpath)
     spath="./scenarios/movingai/${dname}/${mapname}.scen"
@@ -99,6 +100,7 @@ function small_exp() {
 function clean() {
   rm -f data/*.jps+
   fd -e log . "output" --no-ignore -x rm
+  fd -e log . "small_output" --no-ignore -x rm
 }
 
 function gen_small() {
@@ -114,7 +116,7 @@ case "$1" in
   exp) exp;;
   cexp) clean && exp;;
   sexp) small_exp;;
-  scexp) clean && small_exp;;
+  csexp) clean && small_exp;;
   sgen) gen_small ;;
   gen) gen_scen ;;
   clean) clean ;; 
