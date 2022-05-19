@@ -86,7 +86,7 @@ double expect_len, double actual_len) {
   cerr << "expected: " << expect_len << ", actual: " << actual_len << endl;
 }
 
-void sanity_checking(int idx, w::gridmap* mptr, node s, node t, w::cost_t expect, w::cost_t actual) {
+void sanity_checking(int idx, w::gridmap* mptr, node s, node t, double expect, double actual) {
   if (fabs(expect - actual) > eps) {
     print_query(idx, mptr->filename(), mptr->header_width(), mptr->header_height(),
         s.x, s.y, t.x, t.y, expect, actual);
@@ -217,6 +217,8 @@ TEST_CASE("gval") {
 
     warthog::gridmap* map = new warthog::gridmap(mpath.c_str());
     w::octile_heuristic heur(map->width(), map->height());
+    G::query::map = new warthog::gridmap(mpath.c_str());
+    G::query::rmap = G::query::create_rmap(map);
 
     /* JPS variants */
     w::jps_expansion_policy ep(map);
@@ -244,7 +246,10 @@ TEST_CASE("gval") {
     ExpData* cnts[] = {&cnt_jps, &cnt_cjps, &cnt_c2jps, &cnt_jps2, &cnt_cjps2, &cnt_c2jps2};
     for (auto &i: cnts) i->reset();
 
-    for (int i=(int)smgr.num_experiments()-50; i<(int)smgr.num_experiments(); i++) {
+    int fromidx = (int)smgr.num_experiments()-50;
+    // int fromidx = 0;
+    int toindx = (int)smgr.num_experiments();
+    for (int i=fromidx; i<toindx; i++) {
       w::experiment* exp = smgr.get_experiment(i);
       int sx = exp->startx(), sy = exp->starty();
       int tx = exp->goalx(), ty = exp->goaly();
@@ -297,6 +302,7 @@ TEST_CASE("gval") {
     cout << mpath << "\t" << cnt_cjps2.subopt_str() << "\tcjps2" << endl;
     cout << mpath << "\t" << cnt_c2jps2.subopt_str() << "\tc2jps2" << endl;
   }
+  G::query::clear();
 }
 
 TEST_CASE("jlimit-scen") {
@@ -315,6 +321,9 @@ TEST_CASE("jlimit-scen") {
     {"../maps/street/London_1_256.map", "../scenarios/movingai/street/London_1_256.map.scen"},
     {"../maps/mazes/maze512-1-0.map", "../scenarios/movingai/mazes/maze512-1-0.map.scen"},
     {"../maps/rooms/16room_000.map", "../scenarios/movingai/rooms/16room_000.map.scen"},
+    {"../maps/street/Denver_1_1024.map", "../scenarios/movingai/street/Denver_1_1024.map.scen"},
+    {"../maps/iron/scene_sp_endmaps.map", "../scenarios/movingai/iron/scene_sp_endmaps.map.scen"},
+    {"../maps/iron/scene_mp_4p_01.map", "../scenarios/movingai/iron/scene_mp_4p_01.map.scen"},
   };
   w::scenario_manager scenmgr;
   for (const auto& c: cases) {
@@ -323,8 +332,11 @@ TEST_CASE("jlimit-scen") {
     w::gridmap gridmap(mpath.c_str());
     scenmgr.load_scenario(spath.c_str());
     cerr << "map: " << mpath.c_str() << endl;
+    G::query::map = new warthog::gridmap(mpath.c_str());
+    G::query::rmap = G::query::create_rmap(&gridmap);
     run_scen(gridmap, scenmgr);
     scenmgr.clear();
+    G::query::clear();
   }
 }
 
@@ -355,8 +367,11 @@ TEST_CASE("jlimit-query") {
       s[i] = node{sx, sy};
       t[i] = node{tx, ty};
     }
+    G::query::map = new warthog::gridmap(mpath.c_str());
+    G::query::rmap = G::query::create_rmap(&map);
     run(map, s, t, false);
     cerr << "}" << endl;
+    G::query::clear();
   }
 }
 
@@ -372,7 +387,11 @@ TEST_CASE("jlimit-maxscan") {
     int l = map.header_height();
     vector<node> s = {{1, 1}};
     vector<node> t = {{l-1, l-1}};
+
+    G::query::map = new warthog::gridmap(mpath.c_str());
+    G::query::rmap = G::query::create_rmap(&map);
     run(map, s, t);
+    G::query::clear();
   }
 }
 
@@ -394,7 +413,11 @@ TEST_CASE("jlimit-empty") {
       s[i] = {rand() % (l-2), rand() % (l-2)};
       t[i] = {l-1, rand() % (l-1)};
     }
+
+    G::query::map = new warthog::gridmap(mpath.c_str());
+    G::query::rmap = G::query::create_rmap(&map);
     run(map, s, t);
+    G::query::clear();
   }
 }
 
@@ -493,12 +516,6 @@ TEST_CASE("jlimit-exp") {
     w::flexible_astar<
       w::octile_heuristic,
       w::jps_expansion_policy_prune> astar(&heuristic1, &jps1);
-
-    // w::jps_expansion_policy jps1(&map);
-    // w::octile_heuristic heuristic1(map.width(), map.height());
-    // w::flexible_astar<
-    //   w::octile_heuristic,
-    //   w::jps_expansion_policy> astar(&heuristic1, &jps1);
 
     astar.set_verbose(true);
     long long scnt = 0;

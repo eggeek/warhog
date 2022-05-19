@@ -122,6 +122,13 @@ class gridmap
 			tiles[2] = (uint32_t)(*((uint64_t*)(db_+pos3)) >> (bit_offset));
 		}
 
+    // similar to get_neighbours_32bit, but onlu retrieve single row
+    inline void get_row_32bit(uint32_t padded_id, uint32_t& mask) {
+			uint32_t bit_offset = (padded_id & warthog::DBWORD_BITS_MASK);
+			uint32_t dbindex = padded_id >> warthog::LOG2_DBWORD_BITS;
+			mask = (uint32_t)(*((uint64_t*)(db_+dbindex)) >> (bit_offset));
+    }
+
 		// similar to get_neighbours_32bit but padded_id is placed into the
 		// upper bit of the return value. this variant is useful when jumping
 		// toward smaller memory addresses (i.e. west instead of east).
@@ -149,6 +156,14 @@ class gridmap
 			tiles[1] = (uint32_t)(*((uint64_t*)(db_+pos2)) >> (bit_offset+1));
 			tiles[2] = (uint32_t)(*((uint64_t*)(db_+pos3)) >> (bit_offset+1));
 		}
+
+    // similar to get_neighbours_upper_32bit, but only retrieve single row
+    inline void get_row_upper_32bit(uint32_t padded_id, uint32_t& mask) {
+			uint32_t bit_offset = (padded_id& warthog::DBWORD_BITS_MASK);
+			uint32_t dbindex = padded_id >> warthog::LOG2_DBWORD_BITS;
+		  dbindex -= 4;
+			mask = (uint32_t)(*((uint64_t*)(db_+dbindex)) >> (bit_offset+1));
+    }
 
 		// get the label associated with the padded coordinate pair (x, y)
 		inline bool

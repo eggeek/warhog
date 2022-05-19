@@ -4,6 +4,7 @@
 #include "constants.h"
 #include "problem_instance.h"
 #include "blocklist.h"
+#include "gridmap.h"
 using namespace std;
 // set global variable that can be accessed everywhere
 namespace global{
@@ -42,14 +43,49 @@ namespace statis {
 
 namespace query {
   extern warthog::blocklist* nodepool;
-  extern uint32_t startid, goalid;
+  extern uint32_t startid, goalid, id_, rid_;
   extern warthog::cost_t cur_diag_gval;
   extern warthog::problem_instance* pi;
+  extern warthog::gridmap *map, *rmap; // rmap is map rotated by 90 clockwise
 
   inline warthog::cost_t gval(uint32_t id) {
     warthog::search_node* s = nodepool->get(id);
     if (s != nullptr && s->get_searchid() == pi->get_searchid()) return s->get_g();
     else return warthog::INF;
   }
+
+  inline warthog::gridmap*
+  create_rmap(warthog::gridmap* map_)
+  {
+    uint32_t maph = map_->header_height();
+    uint32_t mapw = map_->header_width();
+    uint32_t rmaph = mapw;
+    uint32_t rmapw = maph;
+    warthog::gridmap* rmap = new warthog::gridmap(rmaph, rmapw);
+
+    for(uint32_t x = 0; x < mapw; x++) 
+    {
+      for(uint32_t y = 0; y < maph; y++)
+      {
+        uint32_t label = map_->get_label(map_->to_padded_id(x, y));
+        uint32_t rx = ((rmapw-1) - y);
+        uint32_t ry = x;
+        uint32_t rid = rmap->to_padded_id(rx, ry);
+        rmap->set_label(rid, label);
+      }
+    }
+    return rmap;
+  }
+
+  inline void clear() {
+    if (map != nullptr) delete map;
+    if (rmap != nullptr) delete rmap;
+    map = rmap = nullptr;
+  }
 };
+
+  inline void clear() {
+    statis::clear();
+    query::clear();
+  }
 }

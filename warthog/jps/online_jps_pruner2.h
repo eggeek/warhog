@@ -5,6 +5,71 @@
 #include "global.h"
 
 using namespace std;
+
+namespace pruner_util {
+
+  inline int _block_scan_east(warthog::gridmap* gmap, uint32_t node_id, int maxL) {
+    uint32_t mask = 0;
+    int res = 0;
+    uint32_t tid = node_id + (maxL + 1);
+    bool tmp = gmap->get_label(tid);
+    gmap->set_label(tid, false);
+    while (true) {
+      gmap->get_row_32bit(node_id, mask);
+      if (~mask) {
+        uint32_t nstep = (uint32_t)__builtin_ffs(~mask)-1;
+        res += nstep-1;
+        break;
+      }
+      node_id += 31;
+      res += 31;
+    }
+    gmap->set_label(tid, tmp);
+    return res;
+  }
+
+  inline int _block_scan_west(warthog::gridmap* gmap, uint32_t node_id, int maxL) {
+    uint32_t mask;
+    int res = 0;
+    uint32_t tid = node_id - (maxL + 1);
+    bool tmp = gmap->get_label(tid);
+    gmap->set_label(tid, false);
+    while (true) {
+      gmap->get_row_upper_32bit(node_id, mask);
+      if (~mask) {
+        uint32_t nstep = (uint32_t)__builtin_clz(mask);
+        res += nstep-1;
+        break;
+      }
+      node_id -= 31;
+      res += 31;
+    }
+    gmap->set_label(tid, tmp);
+    return res;
+  }
+
+  inline int scan(warthog::jps::direction d, int maxL=32) {
+    int res = 0;
+    switch(d) {
+      case warthog::jps::NORTH:
+        res = _block_scan_east(global::query::rmap, global::query::rid_, maxL);
+        break;
+      case warthog::jps::SOUTH:
+        res = _block_scan_west(global::query::rmap, global::query::rid_, maxL);
+        break;
+      case warthog::jps::WEST:
+        res = _block_scan_west(global::query::map, global::query::id_, maxL);
+        break;
+      case warthog::jps::EAST:
+        res = _block_scan_east(global::query::map, global::query::id_, maxL);
+        break;
+      default:
+        res = warthog::INF;
+        break;
+    }
+    return res;
+  }
+}
 namespace warthog {
 
 /*
@@ -34,6 +99,7 @@ struct Constraint2 {
       maxDiag,
       // terminate when i=ti, all cardinal nodes are better reached from b
       ti;
+  jps::direction dir, pdir; // direction and perpendicular direction
   inline int jlimt() const { return d - i; }
 
   /*
@@ -73,10 +139,19 @@ struct Constraint2 {
   }
 
   // a is better reached from b, terminate when i=0
-  inline bool dominated() const { return ga >= gb + dC; }
+  inline bool dominated() const { return i>=0 && ga >= gb + dC; }
+  inline void update_maxDiag() {
+    // TODO: replace "false" by condtion:
+    // [b, b+d] are obstacle free
+    bool flag = pruner_util::scan(pdir, d)>=d;
+    // bool flag = false;
+    if (ga + ROOT_TWO*d > gb + dC && flag)
+      maxDiag = min(maxDiag, d+diagCnt);
+  }
   inline bool next() {
+    ++diagCnt;
+    if (diagCnt >= maxDiag) return false;
     if (i < 0) return true; // no applicable constraint
-    if (++diagCnt >= maxDiag) return false;
     // next diagonal move is better reached from b
     if (++i >= ti) return false;
     // next diag move:
@@ -94,12 +169,13 @@ struct Constraint2 {
     maxDiag = MAXSIDE; 
     diagCnt = 0;
     // lastDiag = 0;
-
     i = -1;
     d = L = MAXSIDE;
-    ga = 0;
+    ga = dC = 0;
     gb = MAXSIDE * ONE;
     dC = MAXSIDE * ONE;
+    dir = jps::NONE;
+    pdir = jps::NONE;
   }
 
   // this happen when it becomes invalid at i-th step, 
@@ -108,6 +184,12 @@ struct Constraint2 {
   inline void deactivate() {
     i = -1;
     d = L = MAXSIDE;
+  }
+
+  // call this function before each diagonal move
+  inline void init_before_diag(jps::direction dir_, jps::direction pdir_) {
+    dir = dir_, pdir = pdir_;
+    diagCnt = 0, maxDiag = MAXSIDE;
   }
 };
 
@@ -125,10 +207,8 @@ public:
       static const uint32_t div = (ONE<<1) - ROOT_TWO;
       // L = floor((ga+d-gb)/(2-sqrt(2))), -1 to deal with rounding error
       c.L = (c.ga + c.dC - c.gb + div - 1) / div;
-      // TODO: replace "false" by condtion:
-      // [b, b+d] are obstacle free
-      if (ga + ROOT_TWO*c.d > gb + jumpcost && false)
-        c.maxDiag = min(c.maxDiag, c.d);
+      c.update_maxDiag();
+      // c.lastDiag = c.diagCnt;
     }
     else c.deactivate();
   }
@@ -142,6 +222,8 @@ public:
     south.reset();
     east.reset();
     west.reset();
+    v.reset();
+    h.reset();
   }
 
   /*
@@ -214,8 +296,7 @@ public:
         }
       }
     }
-    // TODO: 2
-    else {
+    else { // 2
       cost_t gb = global::query::gval(node_id);
       if (global::query::cur_diag_gval+cost > gb) {
         setup(v, global::query::cur_diag_gval, gb, cost);
