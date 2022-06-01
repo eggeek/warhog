@@ -43,7 +43,7 @@ namespace statis {
 
 namespace query {
   extern warthog::blocklist* nodepool;
-  extern uint32_t startid, goalid, id_, rid_;
+  extern uint32_t startid, goalid;
   extern warthog::cost_t cur_diag_gval;
   extern warthog::problem_instance* pi;
   extern warthog::gridmap *map, *rmap; // rmap is map rotated by 90 clockwise

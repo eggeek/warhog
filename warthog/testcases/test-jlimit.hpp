@@ -217,9 +217,6 @@ TEST_CASE("gval") {
 
     warthog::gridmap* map = new warthog::gridmap(mpath.c_str());
     w::octile_heuristic heur(map->width(), map->height());
-    G::query::map = new warthog::gridmap(mpath.c_str());
-    G::query::rmap = G::query::create_rmap(map);
-
     /* JPS variants */
     w::jps_expansion_policy ep(map);
     w::jps_expansion_policy_prune cep(map);
@@ -332,8 +329,6 @@ TEST_CASE("jlimit-scen") {
     w::gridmap gridmap(mpath.c_str());
     scenmgr.load_scenario(spath.c_str());
     cerr << "map: " << mpath.c_str() << endl;
-    G::query::map = new warthog::gridmap(mpath.c_str());
-    G::query::rmap = G::query::create_rmap(&gridmap);
     run_scen(gridmap, scenmgr);
     scenmgr.clear();
     G::query::clear();
@@ -367,11 +362,8 @@ TEST_CASE("jlimit-query") {
       s[i] = node{sx, sy};
       t[i] = node{tx, ty};
     }
-    G::query::map = new warthog::gridmap(mpath.c_str());
-    G::query::rmap = G::query::create_rmap(&map);
     run(map, s, t, false);
     cerr << "}" << endl;
-    G::query::clear();
   }
 }
 
@@ -387,11 +379,7 @@ TEST_CASE("jlimit-maxscan") {
     int l = map.header_height();
     vector<node> s = {{1, 1}};
     vector<node> t = {{l-1, l-1}};
-
-    G::query::map = new warthog::gridmap(mpath.c_str());
-    G::query::rmap = G::query::create_rmap(&map);
     run(map, s, t);
-    G::query::clear();
   }
 }
 
@@ -413,11 +401,7 @@ TEST_CASE("jlimit-empty") {
       s[i] = {rand() % (l-2), rand() % (l-2)};
       t[i] = {l-1, rand() % (l-1)};
     }
-
-    G::query::map = new warthog::gridmap(mpath.c_str());
-    G::query::rmap = G::query::create_rmap(&map);
     run(map, s, t);
-    G::query::clear();
   }
 }
 

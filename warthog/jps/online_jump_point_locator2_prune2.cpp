@@ -374,13 +374,7 @@ jlp::jump_northeast(
   G::cur_diag_gval = pa->get_g();
   jp->v.init_before_diag(jps::NORTH, jps::EAST);
   jp->h.init_before_diag(jps::EAST, jps::NORTH);
-
-  G::id_ = node_id-jp->north.d*map_->width();
-  G::rid_ = rnode_id+jp->north.d;
   jp->setup(jp->v, jp->north.ga, jp->north.gb, jp->north.dC);
-
-  G::id_ = node_id+jp->east.d;
-  G::rid_ = rnode_id+jp->east.d*rmap_->width();
   jp->setup(jp->h, jp->east.ga, jp->east.gb, jp->east.dC);
 
 	while(node_id != warthog::INF)
@@ -445,10 +439,6 @@ jlp::__jump_northeast(
     jp->before_scanv(rmap_, rnode_id, 1);
 		__jump_north(rnode_id, rgoal_id, jp_id1, cost1, rmap_);
     jp->jumpcost = cost1;
-    G::id_  = node_id-jp->jump_step*mapw;
-    G::rid_ = rnode_id+jp->jump_step;
-    assert(rmap_id_to_map_id(G::rid_) == G::id_);
-    assert(map_id_to_rmap_id(G::id_) == G::rid_);
     if (!jp->after_scanv(rmap_, node_id-jp->jump_step*mapw, jp_id1, cost1)) {
       jp_id1 = jp_id2 = jumpnode_id = INF;
       jumpcost = 0; return;
@@ -458,10 +448,6 @@ jlp::__jump_northeast(
     jp->before_scanh(map_, node_id, 1);
 		__jump_east(node_id, goal_id, jp_id2, cost2, map_);
     jp->jumpcost = cost2;
-    G::id_  = node_id+jp->jump_step;
-    G::rid_ = rnode_id+jp->jump_step*rmapw;
-    assert(rmap_id_to_map_id(G::rid_) == G::id_);
-    assert(map_id_to_rmap_id(G::id_) == G::rid_);
     if (!jp->after_scanh(map_, node_id+jp->jump_step, jp_id2, cost2)) {
       jp_id1 = jp_id2 = jumpnode_id = INF;
       jumpcost = 0; return;
@@ -509,12 +495,7 @@ jlp::jump_northwest(
   jp->v.init_before_diag(jps::NORTH, jps::WEST);
   jp->h.init_before_diag(jps::WEST, jps::NORTH);
 
-  G::id_ = node_id-jp->north.d*map_->width();
-  G::rid_ = rnode_id+jp->north.d;
   jp->setup(jp->v, jp->north.ga, jp->north.gb, jp->north.dC);
-
-  G::id_ = node_id-jp->west.d;
-  G::rid_ = rnode_id-jp->west.d*rmap_->width();
   jp->setup(jp->h, jp->west.ga, jp->west.gb, jp->west.dC);
 
 	while(node_id != warthog::INF)
@@ -580,10 +561,6 @@ jlp::__jump_northwest(
     jp->before_scanv(rmap_,  rnode_id, 1);
 		__jump_north(rnode_id, rgoal_id, jp_id1, cost1, rmap_);
     jp->jumpcost = cost1;
-    G::id_  = node_id-jp->jump_step*mapw;
-    G::rid_ = rnode_id+jp->jump_step;
-    assert(rmap_id_to_map_id(G::rid_) == G::id_);
-    assert(map_id_to_rmap_id(G::id_) == G::rid_);
     if (!jp->after_scanv(rmap_, node_id-jp->jump_step*mapw, jp_id1, cost1)) {
       jp_id1 = jp_id2 = jumpnode_id = INF;
       jumpcost = 0; return;
@@ -592,10 +569,6 @@ jlp::__jump_northwest(
     jp->before_scanh(map_, node_id, -1);
 		__jump_west(node_id, goal_id, jp_id2, cost2, map_);
     jp->jumpcost = cost2;
-    G::id_  = node_id-jp->jump_step;
-    G::rid_ = rnode_id-jp->jump_step*rmapw;
-    assert(rmap_id_to_map_id(G::rid_) == G::id_);
-    assert(map_id_to_rmap_id(G::id_) == G::rid_);
     if (!jp->after_scanh(map_, node_id-jp->jump_step, jp_id2, cost2)) {
       jp_id1 = jp_id2 = jumpnode_id = INF;
       jumpcost = 0; return;
@@ -639,13 +612,7 @@ jlp::jump_southeast(
   G::cur_diag_gval = pa->get_g();
   jp->v.init_before_diag(jps::SOUTH, jps::EAST);
   jp->h.init_before_diag(jps::EAST, jps::SOUTH);
-
-  G::id_  = node_id+jp->south.d*map_->width();
-  G::rid_ = rnode_id-jp->south.d;
   jp->setup(jp->v, jp->south.ga, jp->south.gb, jp->south.dC);
-
-  G::id_  = node_id+jp->east.d; 
-  G::rid_ = rnode_id+jp->east.d*rmap_->width();
   jp->setup(jp->h, jp->east.ga, jp->east.gb, jp->east.dC);
 
 	while(node_id != warthog::INF)
@@ -711,10 +678,6 @@ jlp::__jump_southeast(
     jp->before_scanv(rmap_, rnode_id, -1);
 		__jump_south(rnode_id, rgoal_id, jp_id1, cost1, rmap_);
     jp->jumpcost = cost1;
-    G::id_  = node_id+jp->jump_step*mapw;
-    G::rid_ = rnode_id-jp->jump_step;
-    assert(rmap_id_to_map_id(G::rid_) == G::id_);
-    assert(map_id_to_rmap_id(G::id_) == G::rid_);
     if (!jp->after_scanv(rmap_, node_id+jp->jump_step*mapw, jp_id1, cost1)) {
       jp_id1 = jp_id2 = jumpnode_id = INF;
       jumpcost = 0; return;
@@ -723,10 +686,6 @@ jlp::__jump_southeast(
     jp->before_scanh(map_, node_id, 1);
 		__jump_east(node_id, goal_id, jp_id2, cost2, map_);
     jp->jumpcost = cost2;
-    G::id_  = node_id+jp->jump_step;
-    G::rid_ = rnode_id+jp->jump_step*rmapw;
-    assert(rmap_id_to_map_id(G::rid_) == G::id_);
-    assert(map_id_to_rmap_id(G::id_) == G::rid_);
     if (!jp->after_scanh(map_, node_id+jp->jump_step, jp_id2, cost2)) {
       jp_id1 = jp_id2 = jumpnode_id = INF;
       jumpcost = 0; return;
@@ -769,12 +728,7 @@ jlp::jump_southwest(
   jp->v.init_before_diag(jps::SOUTH, jps::WEST);
   jp->h.init_before_diag(jps::WEST, jps::SOUTH);
 
-  G::id_ = node_id+jp->south.d*map_->width();
-  G::rid_ = rnode_id-jp->south.d;
   jp->setup(jp->v, jp->south.ga, jp->south.gb, jp->south.dC);
-
-  G::id_ = node_id-jp->west.d;
-  G::rid_ = rnode_id-jp->west.d*rmap_->width();
   jp->setup(jp->h, jp->west.ga, jp->west.gb, jp->west.dC);
 
 	while(node_id != warthog::INF)
@@ -839,10 +793,6 @@ jlp::__jump_southwest(
     jp->before_scanv(rmap_, rnode_id, -1);
 		__jump_south(rnode_id, rgoal_id, jp_id1, cost1, rmap_);
     jp->jumpcost = cost1;
-    G::id_  = node_id+jp->jump_step*mapw;
-    G::rid_ = rnode_id-jp->jump_step;
-    assert(rmap_id_to_map_id(G::rid_) == G::id_);
-    assert(map_id_to_rmap_id(G::id_) == G::rid_);
     if (!jp->after_scanv(rmap_, node_id+jp->jump_step*mapw, jp_id1, cost1)) {
       jp_id1 = jp_id2 = jumpnode_id = INF;
       jumpcost = 0; return;
@@ -851,10 +801,6 @@ jlp::__jump_southwest(
     jp->before_scanh(map_, node_id, -1);
 		__jump_west(node_id, goal_id, jp_id2, cost2, map_);
     jp->jumpcost = cost2;
-    G::id_  = node_id-jp->jump_step;
-    G::rid_ = rnode_id-jp->jump_step*rmapw;
-    assert(rmap_id_to_map_id(G::rid_) == G::id_);
-    assert(map_id_to_rmap_id(G::id_) == G::rid_);
     if (!jp->after_scanh(map_, node_id-jp->jump_step, jp_id2, cost2)) {
       jp_id1 = jp_id2 = jumpnode_id = INF;
       jumpcost = 0; return;

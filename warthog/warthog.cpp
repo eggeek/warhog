@@ -328,9 +328,6 @@ run_jps2_prune2(warthog::scenario_manager& scenmgr)
 	astar.set_verbose(verbose);
   long long tot = 0;
 
-  G::query::map = new warthog::gridmap(scenmgr.mapfile.c_str());
-  G::query::rmap = G::query::create_rmap(&map);
-
 	std::cout << "id\talg\texpd\tgend\ttouched\ttime\tcost\tscnt\tsfile\n";
 	for(unsigned int i=0; i < scenmgr.num_experiments(); i++)
 	{
@@ -362,7 +359,6 @@ run_jps2_prune2(warthog::scenario_manager& scenmgr)
 		check_optimality(len, exp);
 	}
   std::cerr << "done. total memory: "<< astar.mem() + scenmgr.mem() << ", tot scan: " << tot << "\n";
-  G::query::clear();
 }
 
 void
@@ -547,7 +543,6 @@ run_jps_prune2(warthog::scenario_manager& scenmgr)
 		check_optimality(len, exp);
 	}
   std::cerr << "done. total memory: "<< astar.mem() + scenmgr.mem() << ", tot scan: " << tot << "\n";
-  G::query::clear();
 }
 
 void

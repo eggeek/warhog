@@ -6,70 +6,6 @@
 
 using namespace std;
 
-namespace pruner_util {
-
-  inline int _block_scan_east(warthog::gridmap* gmap, uint32_t node_id, int maxL) {
-    uint32_t mask = 0;
-    int res = 0;
-    uint32_t tid = node_id + (maxL + 1);
-    bool tmp = gmap->get_label(tid);
-    gmap->set_label(tid, false);
-    while (true) {
-      gmap->get_row_32bit(node_id, mask);
-      if (~mask) {
-        uint32_t nstep = (uint32_t)__builtin_ffs(~mask)-1;
-        res += nstep-1;
-        break;
-      }
-      node_id += 31;
-      res += 31;
-    }
-    gmap->set_label(tid, tmp);
-    return res;
-  }
-
-  inline int _block_scan_west(warthog::gridmap* gmap, uint32_t node_id, int maxL) {
-    uint32_t mask;
-    int res = 0;
-    uint32_t tid = node_id - (maxL + 1);
-    bool tmp = gmap->get_label(tid);
-    gmap->set_label(tid, false);
-    while (true) {
-      gmap->get_row_upper_32bit(node_id, mask);
-      if (~mask) {
-        uint32_t nstep = (uint32_t)__builtin_clz(mask);
-        res += nstep-1;
-        break;
-      }
-      node_id -= 31;
-      res += 31;
-    }
-    gmap->set_label(tid, tmp);
-    return res;
-  }
-
-  inline int scan(warthog::jps::direction d, int maxL=32) {
-    int res = 0;
-    switch(d) {
-      case warthog::jps::NORTH:
-        res = _block_scan_east(global::query::rmap, global::query::rid_, maxL);
-        break;
-      case warthog::jps::SOUTH:
-        res = _block_scan_west(global::query::rmap, global::query::rid_, maxL);
-        break;
-      case warthog::jps::WEST:
-        res = _block_scan_west(global::query::map, global::query::id_, maxL);
-        break;
-      case warthog::jps::EAST:
-        res = _block_scan_east(global::query::map, global::query::id_, maxL);
-        break;
-      default:
-        res = warthog::INF;
-        break;
-    }
-    return res;
-  }
-}
 namespace warthog {
 
 /*
@@ -92,11 +28,10 @@ struct Constraint2 {
       d,          // |ab|
       L,          // the constraint is no longer applicable when i>=L
       diagCnt,    // number of diag move since expanding a
-      // lastDiag,   // diagonal location of last jump point
       // max number of diagonal move that constraint is applicable since when expanding a, default is INF,
       // ga + sqrt(2)*d < gb + d
       // when creating a constraint, do one cardinal scanning to update it
-      maxDiag,
+      // maxDiag,
       // terminate when i=ti, all cardinal nodes are better reached from b
       ti;
   jps::direction dir, pdir; // direction and perpendicular direction
@@ -140,17 +75,8 @@ struct Constraint2 {
 
   // a is better reached from b, terminate when i=0
   inline bool dominated() const { return i>=0 && ga >= gb + dC; }
-  inline void update_maxDiag() {
-    // TODO: replace "false" by condtion:
-    // [b, b+d] are obstacle free
-    bool flag = pruner_util::scan(pdir, d)>=d;
-    // bool flag = false;
-    if (ga + ROOT_TWO*d > gb + dC && flag)
-      maxDiag = min(maxDiag, d+diagCnt);
-  }
   inline bool next() {
     ++diagCnt;
-    if (diagCnt >= maxDiag) return false;
     if (i < 0) return true; // no applicable constraint
     // next diagonal move is better reached from b
     if (++i >= ti) return false;
@@ -166,7 +92,6 @@ struct Constraint2 {
 
   // rest the constraint 
   inline void reset() { 
-    maxDiag = MAXSIDE; 
     diagCnt = 0;
     // lastDiag = 0;
     i = -1;
@@ -189,7 +114,7 @@ struct Constraint2 {
   // call this function before each diagonal move
   inline void init_before_diag(jps::direction dir_, jps::direction pdir_) {
     dir = dir_, pdir = pdir_;
-    diagCnt = 0, maxDiag = MAXSIDE;
+    diagCnt = 0;
   }
 };
 
@@ -207,8 +132,6 @@ public:
       static const uint32_t div = (ONE<<1) - ROOT_TWO;
       // L = floor((ga+d-gb)/(2-sqrt(2))), -1 to deal with rounding error
       c.L = (c.ga + c.dC - c.gb + div - 1) / div;
-      c.update_maxDiag();
-      // c.lastDiag = c.diagCnt;
     }
     else c.deactivate();
   }
