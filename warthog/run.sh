@@ -33,17 +33,17 @@ scens=(
   )
 
 algs=(
-  jps
-  jps-prune
-  jps-prune2
+  # jps
+  # jps-prune
+  # jps-prune2
   # jps-simple
   jps2
   jps2-prune
   jps2-prune2
 )
 data_dir="./data"
-out_dir="./output"
-sml_outdir="./small_output"
+out_dir="./output2"
+sml_outdir="./small_output2"
 
 function gen_scen() {
   mkdir -p ${data_dir}
