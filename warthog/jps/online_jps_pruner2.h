@@ -27,13 +27,7 @@ struct Constraint2 {
   int i,          // i-th diag step since the constraint is activated
       d,          // |ab|
       L,          // the constraint is no longer applicable when i>=L
-      diagCnt,    // number of diag move since expanding a
-      // max number of diagonal move that constraint is applicable since when expanding a, default is INF,
-      // ga + sqrt(2)*d < gb + d
-      // when creating a constraint, do one cardinal scanning to update it
-      // maxDiag,
-      // terminate when i=ti, all cardinal nodes are better reached from b
-      ti;
+      ti;         // terminate when i=ti, all cardinal nodes are better reached from b
   jps::direction dir, pdir; // direction and perpendicular direction
   inline int jlimt() const { return d - i; }
 
@@ -76,7 +70,6 @@ struct Constraint2 {
   // a is better reached from b, terminate when i=0
   inline bool dominated() const { return i>=0 && ga >= gb + dC; }
   inline bool next() {
-    ++diagCnt;
     if (i < 0) return true; // no applicable constraint
     // next diagonal move is better reached from b
     if (++i >= ti) return false;
@@ -92,7 +85,6 @@ struct Constraint2 {
 
   // rest the constraint 
   inline void reset() { 
-    diagCnt = 0;
     // lastDiag = 0;
     i = -1;
     d = L = MAXSIDE;
@@ -105,7 +97,7 @@ struct Constraint2 {
 
   // this happen when it becomes invalid at i-th step, 
   // but keep moving diagonal;
-  // dont change the maxDiag, lastDiag and diagCnt
+  // dont change the maxDiag, lastDiag
   inline void deactivate() {
     i = -1;
     d = L = MAXSIDE;
@@ -114,7 +106,6 @@ struct Constraint2 {
   // call this function before each diagonal move
   inline void init_before_diag(jps::direction dir_, jps::direction pdir_) {
     dir = dir_, pdir = pdir_;
-    diagCnt = 0;
   }
 };
 

@@ -96,6 +96,10 @@ class jps2_expansion_policy_prune2
       return this->jpl_;
     }
 
+    void init_tables() {
+      this->jpl_->init_tables();
+    }
+
 	private:
 		warthog::gridmap* map_;
 		warthog::blocklist* nodepool_;

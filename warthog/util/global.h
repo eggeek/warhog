@@ -5,24 +5,70 @@
 #include "problem_instance.h"
 #include "blocklist.h"
 #include "gridmap.h"
+#include "pqueue.h"
 using namespace std;
 // set global variable that can be accessed everywhere
 namespace global{
 
+extern string alg;
+// stores the gval on corner points
+struct gvEntry {
+  warthog::cost_t g;
+  uint32_t searchid;
+};
+extern vector<gvEntry> corner_gv;
+
 namespace statis {
+
+  struct Log {
+    uint32_t x, y, id, pid, padded_id, padded_pid, 
+             sx, sy, tx, ty, sid, gid;
+    string curalg, mapname;
+    warthog::cost_t gval;
+    int subopt;
+
+    string to_str() {
+      string res = "";
+      res = mapname + "," + curalg + "," +
+        to_string(padded_id) + "," +
+        to_string(id) + "," + 
+        to_string(x) + "," +
+        to_string(y) + "," +
+        to_string(sid) + "," + 
+        to_string(sx) + "," +
+        to_string(sy) + "," +
+        to_string(gid) + "," + 
+        to_string(tx) + "," +
+        to_string(ty) + "," +
+        to_string((double)(gval / warthog::ONE)) + "," +
+        to_string(subopt);
+      return res;
+    }
+  };
+
   extern vector<warthog::cost_t> dist;
   extern uint32_t subopt_expd;
   extern uint32_t subopt_touch;
   extern uint32_t scan_cnt;
+  extern vector<Log> logs;
+
+  Log gen(uint32_t id, warthog::cost_t gval, bool subopt);
 
   inline void update_subopt_expd(uint32_t id, warthog::cost_t gval) {
     assert(dist.empty() || id < dist.size());
-    if (!dist.empty() && gval > dist[id]) subopt_expd++;
+    if (!dist.empty() && gval > dist[id]) {
+      subopt_expd++;
+      // logs.push_back(gen(id, gval, 1));
+    }
+    // else {
+    //   logs.push_back(gen(id, gval, 0));
+    // }
   }
 
   inline void update_subopt_touch(uint32_t id, warthog::cost_t gval) {
     assert(dist.empty() || id < dist.size());
-    if (!dist.empty() && gval > dist[id]) subopt_touch++;
+    if (!dist.empty() && gval > dist[id]) 
+      subopt_touch++;
   }
 
   inline void clear() {
@@ -39,6 +85,16 @@ namespace statis {
       exit(1);
     }
   }
+
+  inline void write_log(string fname) {
+    std::ofstream fout(fname);
+    string header = "map,alg,padded_id,id,x,y,sid,sx,sy,gid,tx,ty,gval,subopt";
+    fout << header << endl;
+    for (auto& log: logs) {
+      fout << log.to_str() << endl;
+    }
+    fout.close();
+  }
 };
 
 namespace query {
@@ -46,41 +102,38 @@ namespace query {
   extern uint32_t startid, goalid;
   extern warthog::cost_t cur_diag_gval;
   extern warthog::problem_instance* pi;
-  extern warthog::gridmap *map, *rmap; // rmap is map rotated by 90 clockwise
+  extern warthog::gridmap *map;
+  extern warthog::pqueue* open;
 
   inline warthog::cost_t gval(uint32_t id) {
+    warthog::cost_t res = warthog::INF;
+    assert(id < corner_gv.size());
+    if (pi->get_searchid() == corner_gv[id].searchid)
+      res = corner_gv[id].g;
     warthog::search_node* s = nodepool->get(id);
-    if (s != nullptr && s->get_searchid() == pi->get_searchid()) return s->get_g();
-    else return warthog::INF;
+    if (s != nullptr && s->get_searchid() == pi->get_searchid()) 
+      res = min(res, s->get_g());
+    return res;
   }
 
-  inline warthog::gridmap*
-  create_rmap(warthog::gridmap* map_)
-  {
-    uint32_t maph = map_->header_height();
-    uint32_t mapw = map_->header_width();
-    uint32_t rmaph = mapw;
-    uint32_t rmapw = maph;
-    warthog::gridmap* rmap = new warthog::gridmap(rmaph, rmapw);
-
-    for(uint32_t x = 0; x < mapw; x++) 
-    {
-      for(uint32_t y = 0; y < maph; y++)
-      {
-        uint32_t label = map_->get_label(map_->to_padded_id(x, y));
-        uint32_t rx = ((rmapw-1) - y);
-        uint32_t ry = x;
-        uint32_t rid = rmap->to_padded_id(rx, ry);
-        rmap->set_label(rid, label);
-      }
+  // set gvalue on corner point
+  inline void set_corner_gv(uint32_t id, warthog::cost_t g) {
+    assert(id < corner_gv.size());
+    if (corner_gv[id].searchid != pi->get_searchid()) {
+      corner_gv[id] = {g, pi->get_searchid()};
     }
-    return rmap;
+    else if (corner_gv[id].g > g) {
+      corner_gv[id].g = g;
+    }
+    warthog::search_node* n = nodepool->get(id);
+    if (n != nullptr && open->contains(n) && g < n->get_g()) {
+      n->relax(g, nullptr);
+      open->decrease_key(n);
+    }
   }
 
   inline void clear() {
-    if (map != nullptr) delete map;
-    if (rmap != nullptr) delete rmap;
-    map = rmap = nullptr;
+    map = nullptr;
   }
 };
 

@@ -194,6 +194,7 @@ run_jps2(warthog::scenario_manager& scenmgr)
   long long tot = 0;
 
 	std::cout << "id\talg\texpd\tgend\ttouched\ttime\tcost\tscnt\tsfile\n";
+  G::query::map = &map;
 	for(unsigned int i=0; i < scenmgr.num_experiments(); i++)
 	{
 		warthog::experiment* exp = scenmgr.get_experiment(i);
@@ -281,6 +282,7 @@ run_jps2_prune(warthog::scenario_manager& scenmgr)
 	   	warthog::jps2_expansion_policy_prune> astar(&heuristic, &expander);
 	astar.set_verbose(verbose);
   long long tot = 0;
+  G::query::map = &map;
 
 	std::cout << "id\talg\texpd\tgend\ttouched\ttime\tcost\tscnt\tsfile\n";
 	for(unsigned int i=0; i < scenmgr.num_experiments(); i++)
@@ -329,6 +331,8 @@ run_jps2_prune2(warthog::scenario_manager& scenmgr)
   long long tot = 0;
 
 	std::cout << "id\talg\texpd\tgend\ttouched\ttime\tcost\tscnt\tsfile\n";
+
+  G::query::map = &map;
 	for(unsigned int i=0; i < scenmgr.num_experiments(); i++)
 	{
 		warthog::experiment* exp = scenmgr.get_experiment(i);
@@ -419,6 +423,7 @@ run_jps(warthog::scenario_manager& scenmgr)
 
 	std::cout << "id\talg\texpd\tgend\ttouched\ttime\tcost\tscnt\tsfile\n";
   long long tot = 0;
+  G::query::map = new warthog::gridmap(scenmgr.mapfile.c_str());
 	for(unsigned int i=0; i < scenmgr.num_experiments(); i++)
 	{
 		warthog::experiment* exp = scenmgr.get_experiment(i);
@@ -465,6 +470,7 @@ run_jps_prune(warthog::scenario_manager& scenmgr)
 
 	std::cout << "id\talg\texpd\tgend\ttouched\ttime\tcost\tscnt\tsfile\n";
   long long tot = 0;
+  G::query::map = &map;
   for(unsigned int i=0; i < scenmgr.num_experiments(); i++)
 	{
 		warthog::experiment* exp = scenmgr.get_experiment(i);
@@ -511,8 +517,7 @@ run_jps_prune2(warthog::scenario_manager& scenmgr)
 
 	std::cout << "id\talg\texpd\tgend\ttouched\ttime\tcost\tscnt\tsfile\n";
   long long tot = 0;
-  G::query::map = new warthog::gridmap(scenmgr.mapfile.c_str());
-  G::query::rmap = G::query::create_rmap(&map);
+  G::query::map = &map;
   for(unsigned int i=0; i < scenmgr.num_experiments(); i++)
 	{
 		warthog::experiment* exp = scenmgr.get_experiment(i);

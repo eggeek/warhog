@@ -192,6 +192,7 @@ class flexible_astar
       global::query::pi = &instance;
       global::query::startid = startid;
       global::query::goalid = goalid;
+      global::query::open = open_;
 
 			warthog::search_node* goal = 0;
 			warthog::search_node* start = expander_->generate(startid);

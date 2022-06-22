@@ -71,8 +71,10 @@ struct ExpData {
 
   string subopt_str() {
     string res = "";
+    double ratio = (double)subopt_expd / (double) exp;
     res += to_string(subopt_touch) + "\t" +
            to_string(subopt_expd) + "\t" +
+           to_string(ratio) + "\t" + 
            to_string(scan);
     return res;
   }
@@ -96,6 +98,7 @@ void sanity_checking(int idx, w::gridmap* mptr, node s, node t, double expect, d
 
 inline void run(w::gridmap& map, vector<node>& s, vector<node>& t, bool verbose=false) {
 
+  G::query::map = &map;
   /* Heuristic variants */
   w::octile_heuristic heuristic1(map.width(), map.height());
   // w::jps_heuristic jpsh(jps_prune.get_mapper());
@@ -127,6 +130,7 @@ inline void run(w::gridmap& map, vector<node>& s, vector<node>& t, bool verbose=
   jps2.set_verbose(verbose);
   cjps2.set_verbose(verbose);
   c2jps2.set_verbose(verbose);
+  ep_c2jps2.init_tables();
 
   ExpData cnt_jps, cnt_cjps, cnt_c2jps, cnt_jps2, cnt_cjps2, cnt_c2jps2;
   ExpData* cnts[] = {&cnt_jps, &cnt_cjps, &cnt_c2jps, &cnt_jps2, &cnt_cjps2, &cnt_c2jps2};
@@ -194,7 +198,7 @@ inline void run_scen(w::gridmap& gridmap, w::scenario_manager& scenmgr) {
   run(gridmap, s, t, false);
 }
 
-TEST_CASE("gval") {
+inline void test_gval() {
   // count the number of suboptimal node touching/expansion of jps
   // need to modify the corresponding jps class to make this test work
   vector<vector<string>> cases = {
@@ -208,14 +212,16 @@ TEST_CASE("gval") {
     {"./maps/iron/scene_mp_2p_02.map", "./scenarios/movingai/iron/scene_mp_2p_02.map.scen", "min"},
     {"./testcases/maps/diag-random-512.map", "./data/diag-random-512.scen", "synthetic"},
   };
-  string header = "map\tsubopt_touch\tsubopt_expd\tscnt\talg";
+  string header = "map\tsubopt_touch\tsubopt_expd\tratio\tscnt\talg";
   cout << header << endl;
   for (auto it: cases) {
+    G::statis::logs.clear();
     string mpath = it[0];
     string spath = it[1];
     string desc = it[2];
 
     warthog::gridmap* map = new warthog::gridmap(mpath.c_str());
+    G::query::map = map;
     w::octile_heuristic heur(map->width(), map->height());
     /* JPS variants */
     w::jps_expansion_policy ep(map);
@@ -243,8 +249,8 @@ TEST_CASE("gval") {
     ExpData* cnts[] = {&cnt_jps, &cnt_cjps, &cnt_c2jps, &cnt_jps2, &cnt_cjps2, &cnt_c2jps2};
     for (auto &i: cnts) i->reset();
 
-    int fromidx = (int)smgr.num_experiments()-50;
-    // int fromidx = 0;
+    // int fromidx = (int)smgr.num_experiments()-50;
+    int fromidx = 0;
     int toindx = (int)smgr.num_experiments();
     for (int i=fromidx; i<toindx; i++) {
       w::experiment* exp = smgr.get_experiment(i);
@@ -255,41 +261,53 @@ TEST_CASE("gval") {
       dij.run(sid);
 
       /* JPS variants */
+      G::alg = "jps";
       G::statis::clear();
       G::statis::dist = vector<warthog::cost_t>(dij.dist);
       G::query::nodepool = ep.get_nodepool();
       jps.get_length(sid, tid);
+      cnt_jps.update(&jps, S::scan_cnt);
       cnt_jps.update_subopt();
 
+      G::alg = "cjps";
       G::statis::clear();
       G::statis::dist = vector<warthog::cost_t>(dij.dist);
       G::query::nodepool = cep.get_nodepool();
       cjps.get_length(sid, tid);
+      cnt_cjps.update(&cjps, S::scan_cnt);
       cnt_cjps.update_subopt();
 
+      G::alg = "c2jps";
       G::statis::clear();
       G::statis::dist = vector<warthog::cost_t>(dij.dist);
       G::query::nodepool = c2ep.get_nodepool();
       c2jps.get_length(sid, tid);
+      cnt_c2jps.update(&c2jps, S::scan_cnt);
       cnt_c2jps.update_subopt();
 
-      /* JPS2 variants */
+      // JPS2 variants
+      G::alg = "jps2";
       G::statis::clear();
       G::statis::dist = vector<warthog::cost_t>(dij.dist);
       G::query::nodepool = ep2.get_nodepool();
       jps2.get_length(sid, tid);
+      cnt_jps2.update(&jps2, S::scan_cnt);
       cnt_jps2.update_subopt();
 
+      G::alg = "cjps2";
       G::statis::clear();
       G::statis::dist = vector<warthog::cost_t>(dij.dist);
       G::query::nodepool = cep2.get_nodepool();
       cjps2.get_length(sid, tid);
+      cnt_cjps2.update(&cjps2, S::scan_cnt);
       cnt_cjps2.update_subopt();
 
+      G::alg = "c2jps2";
       G::statis::clear();
       G::statis::dist = vector<warthog::cost_t>(dij.dist);
       G::query::nodepool = c2ep2.get_nodepool();
       c2jps2.get_length(sid, tid);
+      cnt_c2jps2.update(&c2jps2, S::scan_cnt);
       cnt_c2jps2.update_subopt();
     }
     cout << mpath << "\t" << cnt_jps.subopt_str() << "\tjps" << endl;
@@ -298,14 +316,16 @@ TEST_CASE("gval") {
     cout << mpath << "\t" << cnt_jps2.subopt_str() << "\tjps2" << endl;
     cout << mpath << "\t" << cnt_cjps2.subopt_str() << "\tcjps2" << endl;
     cout << mpath << "\t" << cnt_c2jps2.subopt_str() << "\tc2jps2" << endl;
+    G::statis::write_log("node-expd.csv");
   }
   G::query::clear();
-}
 
-TEST_CASE("jlimit-scen") {
+}
+inline void test_jlimit_scen() {
   vector<pair<string, string>> cases = {
     {"./maps/dao/arena.map", "./scenarios/movingai/dao/arena.map.scen"},
     {"./maps/dao/den011d.map", "./scenarios/movingai/dao/den011d.map.scen"},
+    {"./maps/dao/brc505d.map", "./scenarios/movingai/dao/brc505d.map.scen"},
     {"./maps/starcraft/Archipelago.map", "./scenarios/movingai/starcraft/Archipelago.map.scen"},
     {"./maps/starcraft/ArcticStation.map", "./scenarios/movingai/starcraft/ArcticStation.map.scen"},
     {"./maps/starcraft/Aurora.map", "./scenarios/movingai/starcraft/Aurora.map.scen"},
@@ -335,7 +355,7 @@ TEST_CASE("jlimit-scen") {
   }
 }
 
-TEST_CASE("jlimit-query") {
+inline void test_jlimit_query() {
   vector<string> queries = {
     "./testcases/diag-random-256.query",
     "./testcases/diag-random-512.query",
@@ -366,6 +386,10 @@ TEST_CASE("jlimit-query") {
     cerr << "}" << endl;
   }
 }
+
+TEST_CASE("gval") { test_gval(); }
+TEST_CASE("jlimit-scen") { test_jlimit_scen(); }
+TEST_CASE("jlimit-query") { test_jlimit_query(); }
 
 TEST_CASE("jlimit-maxscan") {
   vector<string> mpaths = {

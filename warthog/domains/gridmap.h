@@ -208,6 +208,38 @@ class gridmap
 			}
 		}
 
+    inline bool
+    is_corner(uint32_t px, uint64_t py) {
+      // px: padded x, py: padded y
+      if (
+          (
+           px >= 1 && py >= 1 &&
+            !get_label(px-1, py-1) &&
+            get_label(px, py-1)&&
+            get_label(px-1, py)
+          ) ||
+          (
+           py >= 1 &&
+            !get_label(px+1, py-1) &&
+            get_label(px, py-1) &&
+            get_label(px+1, py)
+          ) ||
+          (
+           px >= 1 &&
+            !get_label(px-1, py+1) &&
+            get_label(px-1, py) &&
+            get_label(px, py+1)
+          ) ||
+          (
+            !get_label(px+1, py+1) &&
+            get_label(px, py+1) &&
+            get_label(px+1, py)
+          )
+      )
+      return true;
+      else return false;
+    }
+
 		inline uint32_t
 		padded_mapsize()
 		{

@@ -11,6 +11,7 @@ jps2_exp_prune2::jps2_expansion_policy_prune2(warthog::gridmap* map)
 	nodepool_ = new warthog::blocklist(map->height(), map->width());
   global::query::nodepool = nodepool_;
 	jpl_ = new warthog::online_jump_point_locator2_prune2(map, &jpruner);
+  jpl_->init_tables();
 	reset();
 
 	neighbours_.reserve(100);
