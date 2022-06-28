@@ -7,6 +7,7 @@
 #include "gridmap.h"
 #include "pqueue.h"
 #include "search_node.h"
+#include "pqueue.h"
 using namespace std;
 // set global variable that can be accessed everywhere
 namespace global{
@@ -55,6 +56,9 @@ namespace statis {
 
   Log gen(uint32_t id, warthog::cost_t gval, bool subopt);
   extern uint32_t prunable;
+  extern vector<Log> logs;
+
+  Log gen(uint32_t id, warthog::cost_t gval, bool subopt);
 
   inline void update_subopt_expd(uint32_t id, warthog::cost_t gval) {
     assert(dist.empty() || id < dist.size());
