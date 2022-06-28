@@ -59,6 +59,7 @@ main: makedirs warthog
 	@echo "linking..."
 	$(CC) warthog.cpp -o ./bin/warthog -lwarthog $(CFLAGS) $(D_LIBS) $(D_INCLUDES)
 	$(CC) tests.cpp -o ./bin/tests -lwarthog $(CFLAGS) $(D_LIBS) $(D_INCLUDES) $(D_TEST_INCLUDES)
+	$(CC) subopt_expd_exp.cpp -o ./bin/subopt_expd_exp -lwarthog $(CFLAGS) $(D_LIBS) $(D_INCLUDES) $(D_TEST_INCLUDES)
 
 .PHONY: makedirs
 makedirs:

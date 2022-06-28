@@ -5,6 +5,7 @@
 #include "problem_instance.h"
 #include "blocklist.h"
 #include "gridmap.h"
+#include "search_node.h"
 using namespace std;
 // set global variable that can be accessed everywhere
 namespace global{
@@ -14,10 +15,17 @@ namespace statis {
   extern uint32_t subopt_expd;
   extern uint32_t subopt_touch;
   extern uint32_t scan_cnt;
+  extern uint32_t prunable;
 
   inline void update_subopt_expd(uint32_t id, warthog::cost_t gval) {
     assert(dist.empty() || id < dist.size());
     if (!dist.empty() && gval > dist[id]) subopt_expd++;
+  }
+
+  inline void update_pruneable(warthog::search_node* cur) {
+    warthog::search_node* pa = cur->get_parent();
+    // parent is subopt
+    if (!dist.empty() && pa != nullptr && pa->get_g() > dist[pa->get_id()]) prunable++;
   }
 
   inline void update_subopt_touch(uint32_t id, warthog::cost_t gval) {
@@ -30,6 +38,7 @@ namespace statis {
     subopt_expd = 0;
     subopt_touch = 0;
     scan_cnt = 0;
+    prunable = 0;
   }
 
   inline void sanity_checking(uint32_t id, warthog::cost_t gval) {
