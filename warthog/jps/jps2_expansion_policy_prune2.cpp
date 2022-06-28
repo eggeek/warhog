@@ -36,6 +36,7 @@ jps2_exp_prune2::expand(
 
 #ifdef CNT
   G::statis::update_subopt_expd(current->get_id(), current->get_g());
+  G::statis::update_pruneable(current);
 #endif
 	// compute the direction of travel used to reach the current node.
 	warthog::jps::direction dir_c = current->get_pdir();

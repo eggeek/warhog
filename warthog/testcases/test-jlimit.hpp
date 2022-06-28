@@ -29,6 +29,8 @@ namespace G = global;
 namespace S = global::statis;
 namespace TEST_JLIMIT {
 
+string mapfile, scenfile;
+
 struct node {
   int x, y;
 };
@@ -214,6 +216,7 @@ inline void test_gval() {
   };
   string header = "map\tsubopt_touch\tsubopt_expd\tratio\tscnt\talg";
   cout << header << endl;
+  return;
   for (auto it: cases) {
     G::statis::logs.clear();
     string mpath = it[0];

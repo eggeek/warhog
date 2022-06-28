@@ -4,6 +4,7 @@ uint32_t statis::subopt_expd = 0;
 uint32_t statis::subopt_touch = 0;
 uint32_t statis::scan_cnt = 0;
 string global::alg = "";
+uint32_t statis::prunable = 0;
 vector<warthog::cost_t> statis::dist = vector<warthog::cost_t>();
 vector<global::gvEntry> global::corner_gv = vector<global::gvEntry>();
 vector<statis::Log> statis::logs = vector<statis::Log>();

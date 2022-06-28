@@ -82,6 +82,27 @@ function exp() {
   done
 }
 
+function suboptcnt() {
+  outdir="${out_dir}"
+  fname="subopt-expd.log"
+  mkdir -p ${outdir}
+  if [[ -e ${outdir}/${fname} ]]; then
+    rm ${outdir}/${fname}
+  fi
+  header=map'\t'subopt_touch'\t'tot_touch'\t'subopt_expd'\t'pruneable'\t'tot_expd'\t'scnt'\t'alg
+  echo  -e "$header"> ${outdir}/${fname}
+  for dm in ${domains[@]}; do
+    domain=$(basename -- $dm)
+    for mpath in `ls ${dm}/*.map`; do
+      mapname=$(basename -- $mpath)
+      spath="./scenarios/movingai/${domain}/${mapname}.scen"
+      cmd="./bin/subopt_expd_exp --scen ${spath} --map ${mpath} >> ${outdir}/${fname}"
+      echo $cmd
+      eval $cmd
+    done
+  done
+}
+
 function small_exp() {
   for (( i=0; i<${#maps[@]}; i++ )); do
     mpath=${maps[$i]}
@@ -119,6 +140,7 @@ case "$1" in
   csexp) clean && small_exp;;
   sgen) gen_small ;;
   gen) gen_scen ;;
+  sub) suboptcnt;;
   clean) clean ;; 
   *)
     echo $"Usage: $0 {exp|gen}"
