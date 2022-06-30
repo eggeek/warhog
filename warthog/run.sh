@@ -91,6 +91,7 @@ function suboptcnt() {
   fi
   header=map'\t'subopt_touch'\t'tot_touch'\t'subopt_expd'\t'pruneable'\t'tot_expd'\t'scnt'\t'alg
   echo  -e "$header"> ${outdir}/${fname}
+  # ./bin/subopt_expd_exp --scen data/subopt-expd.map.scen --map testcases/maps/subopt-expd.map >> ${outdir}/${fname}
   for dm in ${domains[@]}; do
     domain=$(basename -- $dm)
     for mpath in `ls ${dm}/*.map`; do

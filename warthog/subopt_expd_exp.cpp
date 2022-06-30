@@ -32,6 +32,7 @@ struct ExpData {
   void update_subopt() {
     subopt_expd += G::statis::subopt_expd;
     subopt_touch += G::statis::subopt_touch;
+    pruneable += G::statis::prunable;
     scan += G::statis::scan_cnt;
   }
 
@@ -79,6 +80,7 @@ void run(string mpath, string spath) {
 
   ExpData* cnts[] = {&cnt_jps, &cnt_cjps, &cnt_c2jps, &cnt_jps2, &cnt_cjps2, &cnt_c2jps2};
   for (auto &i: cnts) i->reset();
+  global::query::map = map;
 
   int fromidx = 0;
   int toindx = (int)smgr.num_experiments();
@@ -94,6 +96,7 @@ void run(string mpath, string spath) {
     G::statis::clear();
     G::statis::dist = vector<warthog::cost_t>(dij.dist);
     G::query::nodepool = ep2.get_nodepool();
+    // jps2.set_verbose(true);
     jps2.get_length(sid, tid);
     cnt_jps2.update_subopt();
     cnt_jps2.update(&jps2, 0);

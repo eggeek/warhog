@@ -26,7 +26,7 @@ namespace statis {
     uint32_t x, y, id, pid, padded_id, padded_pid, 
              sx, sy, tx, ty, sid, gid;
     string curalg, mapname;
-    warthog::cost_t gval;
+    warthog::cost_t cg, opt_g;
     int subopt;
 
     string to_str() {
@@ -42,7 +42,8 @@ namespace statis {
         to_string(gid) + "," + 
         to_string(tx) + "," +
         to_string(ty) + "," +
-        to_string((double)(gval / warthog::ONE)) + "," +
+        to_string((double)cg/(double)warthog::ONE) + "," +
+        to_string((double)opt_g/(double)warthog::ONE) + "," +
         to_string(subopt);
       return res;
     }
@@ -54,7 +55,6 @@ namespace statis {
   extern uint32_t scan_cnt;
   extern vector<Log> logs;
 
-  Log gen(uint32_t id, warthog::cost_t gval, bool subopt);
   extern uint32_t prunable;
   extern vector<Log> logs;
 
@@ -101,7 +101,7 @@ namespace statis {
 
   inline void write_log(string fname) {
     std::ofstream fout(fname);
-    string header = "map,alg,padded_id,id,x,y,sid,sx,sy,gid,tx,ty,gval,subopt";
+    string header = "map,alg,padded_id,id,x,y,sid,sx,sy,gid,tx,ty,curg,optg,subopt";
     fout << header << endl;
     for (auto& log: logs) {
       fout << log.to_str() << endl;
