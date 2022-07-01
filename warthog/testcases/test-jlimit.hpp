@@ -213,10 +213,10 @@ inline void test_gval() {
     {"./maps/iron/scene_sp_sax_04.map", "./scenarios/movingai/iron/scene_sp_sax_04.map.scen", "max"},
     {"./maps/iron/scene_mp_2p_02.map", "./scenarios/movingai/iron/scene_mp_2p_02.map.scen", "min"},
     {"./testcases/maps/diag-random-512.map", "./data/diag-random-512.scen", "synthetic"},
+    {"./testcases/maps/subopt-expd.map", "./data/subopt-expd.map.scen", "synthetic"},
   };
   string header = "map\tsubopt_touch\tsubopt_expd\tratio\tscnt\talg";
   cout << header << endl;
-  return;
   for (auto it: cases) {
     G::statis::logs.clear();
     string mpath = it[0];
