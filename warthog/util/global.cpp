@@ -6,7 +6,6 @@ uint32_t statis::scan_cnt = 0;
 string global::alg = "";
 uint32_t statis::prunable = 0;
 vector<warthog::cost_t> statis::dist = vector<warthog::cost_t>();
-vector<global::gvEntry> global::corner_gv = vector<global::gvEntry>();
 vector<statis::Log> statis::logs = vector<statis::Log>();
 warthog::problem_instance* query::pi = nullptr;
 warthog::blocklist* query::nodepool = nullptr;

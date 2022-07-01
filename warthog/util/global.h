@@ -13,12 +13,6 @@ using namespace std;
 namespace global{
 
 extern string alg;
-// stores the gval on corner points
-struct gvEntry {
-  warthog::cost_t g;
-  uint32_t searchid;
-};
-extern vector<gvEntry> corner_gv;
 
 namespace statis {
 
@@ -120,9 +114,6 @@ namespace query {
 
   inline warthog::cost_t gval(uint32_t id) {
     warthog::cost_t res = warthog::INF;
-    assert(id < corner_gv.size());
-    if (pi->get_searchid() == corner_gv[id].searchid)
-      res = corner_gv[id].g;
     warthog::search_node* s = nodepool->get(id);
     if (s != nullptr && s->get_searchid() == pi->get_searchid()) 
       res = min(res, s->get_g());
@@ -131,17 +122,32 @@ namespace query {
 
   // set gvalue on corner point
   inline void set_corner_gv(uint32_t id, warthog::cost_t g) {
-    assert(id < corner_gv.size());
-    if (corner_gv[id].searchid != pi->get_searchid()) {
-      corner_gv[id] = {g, pi->get_searchid()};
-    }
-    else if (corner_gv[id].g > g) {
-      corner_gv[id].g = g;
-    }
     warthog::search_node* n = nodepool->get(id);
-    if (n != nullptr && open->contains(n) && g < n->get_g()) {
-      n->relax(g, nullptr);
-      open->decrease_key(n);
+    if (n == nullptr) {
+      // n hasn't been generated before
+      n = nodepool->generate(id);
+      n->reset(pi->get_searchid());
+      n->set_g(g);
+    }
+    else if (n->get_searchid() != pi->get_searchid()) {
+      n->reset(pi->get_searchid());
+      n->set_g(g);
+    }
+    else if (open->contains(n)) {
+      // n has been generated and pushed in queue
+      if (g < n->get_g()) {
+        // and the current g is better, so n can be pruned.
+        n->relax(g, nullptr);
+        open->decrease_key(n); // this is to maintain the consistant heuristic
+        // later when n is popped out, if g > 0 and parent is null,
+        // we won't expand this node.
+      }
+    }
+    else if (g < n->get_g()) {
+      // n has been generated but not pushed yet,
+      // implies that n is a corner point of another parent
+      n->set_g(g);
+      n->set_parent(nullptr);
     }
   }
 

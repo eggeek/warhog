@@ -31,6 +31,11 @@ jps2_exp_prune2::expand(
 		warthog::search_node* current, warthog::problem_instance* problem)
 {
 	reset();
+  if (current->get_g() > 0 && current->get_parent() == nullptr) {
+    neighbours_.push_back(0);
+    costs_.push_back(0);
+    return;
+  }
   jpruner.reset_constraints();
   jpl_->pa = current;
 

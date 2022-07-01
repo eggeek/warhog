@@ -186,10 +186,10 @@ class online_jump_point_locator2_prune2
         iscorner[pid] = map_->is_corner(px, py);
       }
 
-      global::corner_gv.resize(map_->height()*map_->width());
-      for (auto& it: global::corner_gv) {
-        it.g = INF, it.searchid = INF;
-      }
+      // global::corner_gv.resize(map_->height()*map_->width());
+      // for (auto& it: global::corner_gv) {
+      //   it.g = INF, it.searchid = INF;
+      // }
 
       for (int i=0; i<4; i++) {
         nxtjp[i].resize(map_->height() * map_->width());
