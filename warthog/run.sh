@@ -1,3 +1,4 @@
+#!/bin/bash
 domains=(
   ./maps/bgmaps
   ./maps/iron
@@ -38,7 +39,7 @@ algs=(
   # jps-prune2
   # jps-simple
   jps2
-  jps2-prune
+  # jps2-prune
   jps2-prune2
 )
 data_dir="./data"
@@ -79,6 +80,25 @@ function run_domain() {
 function exp() {
   for dm in ${domains[@]}; do
     run_domain $dm
+  done
+}
+
+function suboptcnt_per_query() {
+  for domain in ${domains[@]}; do
+    dname=$(basename -- $domain)
+    out_dir="suboptcnt/"
+    for mpath in `ls ${domain}/*.map`; do
+      mapname=$(basename -- $mpath)
+      spath="./scenarios/movingai/${dname}/${mapname}.scen"
+
+      for alg in "${algs[@]}"; do
+        outpath="${out_dir}/${dname}"
+        mkdir -p ${outpath}
+        cmd="./bin/subopt_expd_exp --query --scen ${spath} --map ${mpath} > $outpath/$mapname.log"
+        echo $cmd
+        eval "$cmd"
+      done
+    done
   done
 }
 
@@ -142,6 +162,7 @@ case "$1" in
   sgen) gen_small ;;
   gen) gen_scen ;;
   sub) suboptcnt;;
+  subq) suboptcnt_per_query ;;
   clean) clean ;; 
   *)
     echo $"Usage: $0 {exp|gen}"

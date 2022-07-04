@@ -161,67 +161,134 @@ class online_jump_point_locator2_prune2
     vector<bool> iscorner;
 
     // nxtjp[d][id] stores next jump point in direction `d` (NSEW) at `id`
-    vector<pair<uint32_t, cost_t>> nxtjp[4];
+    // vector<pair<uint32_t, cost_t>> nxtjp[4];
 
-    vector<uint32_t> rmap2mapid;
+    // vector<uint32_t> rmap2mapid;
 
     public:
     inline void init_tables() {
-      rmap2mapid.resize(rmap_->height()*rmap_->width());
+      // rmap2mapid.resize(rmap_->height()*rmap_->width());
       iscorner.resize(map_->height()*map_->width());
-      fill(rmap2mapid.begin(), rmap2mapid.end(), -1);
+      // fill(rmap2mapid.begin(), rmap2mapid.end(), -1);
       fill(iscorner.begin(), iscorner.end(), false);
       int mh = map_->header_height();
       int mw = map_->header_width();
       for (int x=0; x<mw; x++)
       for (int y=0; y<mh; y++) {
-        uint32_t px, py, pid, rpid;
+        uint32_t px, py, pid;// rpid;
         pid = map_->to_padded_id(y*mw+x);
         map_->to_padded_xy(pid, px, py);
-        rpid = map_id_to_rmap_id(pid);
+        // rpid = map_id_to_rmap_id(pid);
 
-        assert(rpid < rmap2mapid.size());
-        rmap2mapid[rpid] = pid;
+        // assert(rpid < rmap2mapid.size());
+        // rmap2mapid[rpid] = pid;
         assert(pid < iscorner.size());
         iscorner[pid] = map_->is_corner(px, py);
       }
 
-      // global::corner_gv.resize(map_->height()*map_->width());
-      // for (auto& it: global::corner_gv) {
-      //   it.g = INF, it.searchid = INF;
+      // // global::corner_gv.resize(map_->height()*map_->width());
+      // // for (auto& it: global::corner_gv) {
+      // //   it.g = INF, it.searchid = INF;
+      // // }
+      //
+      // for (int i=0; i<4; i++) {
+      //   nxtjp[i].resize(map_->height() * map_->width());
+      //   for (auto& it: nxtjp[i]) it = {INF, max(map_->height(), map_->width()) * ONE};
+      //   for (int x=0; x<mw; x++)
+      //   for (int y=0; y<mh; y++) {
+      //     int cx = x + dx[i], cy = y + dy[i];
+      //     uint32_t pid;
+      //     pid = map_->to_padded_id(y*mw+x);
+      //     if (!iscorner[pid]) continue;
+      //     cost_t pcost = 0;
+      //     while (cx >= 0 && cx < mw && cy >= 0 && cy < mh) {
+      //       uint32_t padded_x, padded_y, padded_id;
+      //       pcost += ONE;
+      //       padded_id = map_->to_padded_id(cy*mw+cx);
+      //       map_->to_padded_xy(padded_id, padded_x, padded_y);
+      //       if (iscorner[padded_id]) {
+      //         nxtjp[i][pid] = {padded_id, pcost};
+      //         break;
+      //       }
+      //       cx += dx[i], cy += dy[i];
+      //     }
+      //   }
       // }
+    }
 
-      for (int i=0; i<4; i++) {
-        nxtjp[i].resize(map_->height() * map_->width());
-        for (auto& it: nxtjp[i]) it = {INF, max(map_->height(), map_->width()) * ONE};
-        for (int x=0; x<mw; x++)
-        for (int y=0; y<mh; y++) {
-          int cx = x + dx[i], cy = y + dy[i];
-          uint32_t pid;
-          pid = map_->to_padded_id(y*mw+x);
-          if (!iscorner[pid]) continue;
-          cost_t pcost = 0;
-          while (cx >= 0 && cx < mw && cy >= 0 && cy < mh) {
-            uint32_t padded_x, padded_y, padded_id;
-            pcost += ONE;
-            padded_id = map_->to_padded_id(cy*mw+cx);
-            map_->to_padded_xy(padded_id, padded_x, padded_y);
-            if (iscorner[padded_id]) {
-              nxtjp[i][pid] = {padded_id, pcost};
-              break;
-            }
-            cx += dx[i], cy += dy[i];
-          }
-        }
+    // inline void _backwards_gval_update(uint32_t jpid, cost_t jpc, cost_t pgv, int dirid) {
+    //   cost_t cur_cost = 0;
+    //   while (cur_cost + nxtjp[dirid][jpid].second < jpc) {
+    //     cur_cost += nxtjp[dirid][jpid].second;
+    //     global::query::set_corner_gv(nxtjp[dirid][jpid].first, pgv+jpc-cur_cost);
+    //     jpid = nxtjp[dirid][jpid].first;
+    //   }
+    // }
+
+    inline void backwards_gval_update_NS(uint32_t jpid, uint32_t r_jpid, 
+        cost_t jpc, cost_t pgv, jps::direction dir) {
+      cost_t cur_cost = 0, nxt_cost;
+      uint32_t nxtjp;
+      while (true) {
+        nxtjp = jpid;
+        _backwards_gval_update_online_NS(nxtjp, r_jpid, nxt_cost, dir);
+        if (cur_cost + nxt_cost >= jpc) break;
+        cur_cost += nxt_cost;
+        global::query::set_corner_gv(nxtjp, pgv+jpc-cur_cost);
+        jpid = nxtjp;
       }
     }
 
-    inline void _backwards_gval_update(uint32_t jpid, cost_t jpc, cost_t pgv, int dirid) {
-      cost_t cur_cost = 0;
-      while (cur_cost + nxtjp[dirid][jpid].second < jpc) {
-        cur_cost += nxtjp[dirid][jpid].second;
-        global::query::set_corner_gv(nxtjp[dirid][jpid].first, pgv+jpc-cur_cost);
-        jpid = nxtjp[dirid][jpid].first;
+    inline void backwards_gval_update_EW(uint32_t jpid,
+        cost_t jpc, cost_t pgv, jps::direction dir) {
+      cost_t cur_cost = 0, nxt_cost;
+      uint32_t nxtjp;
+      while (true) {
+        nxtjp = jpid;
+        _backwards_gval_update_online_EW(nxtjp, nxt_cost, dir);
+        if (cur_cost + nxt_cost >= jpc) break;
+        cur_cost += nxt_cost;
+        global::query::set_corner_gv(nxtjp, pgv+jpc-cur_cost);
+        jpid = nxtjp;
+      }
+    }
+
+    inline void _backwards_gval_update_online_NS(
+        uint32_t& jpid, uint32_t& r_jpid, cost_t& jcost, jps::direction dir) {
+      switch (dir) {
+        uint32_t rid;
+        case jps::NORTH: {
+                           __jump_north(r_jpid, INF, rid, jcost, rmap_);
+                           jpid -= jp->jump_step * map_->width();
+                           r_jpid = rid;
+                           break;
+                         }
+        case jps::SOUTH: {
+                           __jump_south(r_jpid, INF, rid, jcost, rmap_);
+                           jpid += jp->jump_step * map_->width();
+                           r_jpid = rid;
+                           break;
+                         }
+        default: break;
+      }
+    }
+
+    inline void _backwards_gval_update_online_EW(
+        uint32_t& jpid, cost_t& jcost, jps::direction dir) {
+
+      uint32_t id;
+      switch (dir) {
+        case jps::EAST: {
+                          __jump_east(jpid, INF, id, jcost, map_);
+                          jpid += jp->jump_step;
+                          break;
+                        }
+        case jps::WEST: {
+                          __jump_west(jpid, INF, id, jcost, map_);
+                          jpid -= jp->jump_step;
+                          break;
+                        }
+        default: break;
       }
     }
 };

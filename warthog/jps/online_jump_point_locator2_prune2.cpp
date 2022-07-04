@@ -122,9 +122,12 @@ jlp::jump_north(
 
 	if(jumpnode_id != warthog::INF)
 	{
+    uint32_t rjp_id = jumpnode_id;
 		jumpnode_id = current_node_id_ - jp->jump_step * map_->width();
-    _backwards_gval_update(jumpnode_id, jumpcost, pa->get_g(), 1); // update south
+    // _backwards_gval_update(jumpnode_id, jumpcost, pa->get_g(), 1); // update south
+    backwards_gval_update_NS(jumpnode_id, rjp_id, jumpcost, pa->get_g(), jps::SOUTH);
     jp->setup(jp->north, pa->get_g(), G::gval(jumpnode_id), jumpcost);
+
     if (pa->get_g() + jumpcost <= G::gval(jumpnode_id)) {
       *(((uint8_t*)&jumpnode_id)+3) = warthog::jps::NORTH;
       jpoints.push_back(jumpnode_id);
@@ -157,8 +160,10 @@ jlp::jump_south(
 
 	if(jumpnode_id != warthog::INF)
 	{
-		jumpnode_id = current_node_id_ + jp->jump_step * map_->width();
-    _backwards_gval_update(jumpnode_id, jumpcost, pa->get_g(), 0); // update north
+    uint32_t rjp_id = jumpnode_id;
+    jumpnode_id = current_node_id_ + jp->jump_step * map_->width();
+    // _backwards_gval_update(jumpnode_id, jumpcost, pa->get_g(), 0); // update north
+    backwards_gval_update_NS(jumpnode_id, rjp_id, jumpcost, pa->get_g(), jps::NORTH);
     jp->setup(jp->south, pa->get_g(), G::gval(jumpnode_id), jumpcost);
 
     if (pa->get_g() + jumpcost <= G::gval(jumpnode_id)) {
@@ -193,7 +198,8 @@ jlp::jump_east(
 
 	if(jumpnode_id != warthog::INF)
 	{
-    _backwards_gval_update(jumpnode_id, jumpcost, pa->get_g(), 3); // update west
+    // _backwards_gval_update(jumpnode_id, jumpcost, pa->get_g(), 3); // update west
+    backwards_gval_update_EW(jumpnode_id, jumpcost, pa->get_g(), jps::WEST);
     jp->setup(jp->east, pa->get_g(), G::gval(jumpnode_id), jumpcost);
     if (pa->get_g() + jumpcost <= G::gval(jumpnode_id)) {
       *(((uint8_t*)&jumpnode_id)+3) = warthog::jps::EAST;
@@ -288,7 +294,8 @@ jlp::jump_west(
 
 	if(jumpnode_id != warthog::INF)
 	{
-    _backwards_gval_update(jumpnode_id, jumpcost, pa->get_g(), 2); // update east
+    // _backwards_gval_update(jumpnode_id, jumpcost, pa->get_g(), 2); // update east
+    backwards_gval_update_EW(jumpnode_id, jumpcost, pa->get_g(), jps::EAST);
     jp->setup(jp->west, pa->get_g(), G::gval(jumpnode_id), jumpcost);
 
     if (pa->get_g() + jumpcost <= G::gval(jumpnode_id)) {
@@ -400,9 +407,11 @@ jlp::jump_northeast(
 
 		if(jp1_id != warthog::INF)
 		{
+      uint32_t rjp_id = jp1_id;
 			jp1_id = node_id - (jp1_cost / warthog::ONE) * map_->width();
       // update in south
-      _backwards_gval_update(jp1_id, jp1_cost, G::cur_diag_gval, 1);
+      // _backwards_gval_update(jp1_id, jp1_cost, G::cur_diag_gval, 1);
+      backwards_gval_update_NS(jp1_id, rjp_id, jp1_cost, G::cur_diag_gval, jps::SOUTH);
       if (G::cur_diag_gval+ jp1_cost <= G::gval(jp1_id)) {
 			  *(((uint8_t*)&jp1_id)+3) = warthog::jps::NORTH;
         jpoints.push_back(jp1_id);
@@ -415,7 +424,8 @@ jlp::jump_northeast(
 		{
       cost_t gp = pa->get_g() + cost_to_nodeid + jumpcost;
       // update in west
-      _backwards_gval_update(jp2_id, jp2_cost, gp, 3);
+      // _backwards_gval_update(jp2_id, jp2_cost, gp, 3);
+      backwards_gval_update_EW(jp2_id, jp2_cost, gp, jps::WEST);
       if (gp + jp2_cost <= G::gval(jp2_id)) {
 			  *(((uint8_t*)&jp2_id)+3) = warthog::jps::EAST;
         jpoints.push_back(jp2_id);
@@ -451,8 +461,8 @@ jlp::__jump_northeast(
     G::cur_diag_gval += ROOT_TWO;
 		node_id = node_id - mapw + 1;
 		rnode_id = rnode_id + rmapw + 1;
-    if (iscorner[node_id])
-      global::query::set_corner_gv(node_id, G::cur_diag_gval);
+    // if (iscorner[node_id])
+    global::query::set_corner_gv(node_id, G::cur_diag_gval);
 
     if ((!jp->v.next()) || (!jp->h.next())) {
       jumpnode_id = warthog::INF; jumpcost = 0; return;
@@ -532,9 +542,11 @@ jlp::jump_northwest(
 
 		if(jp1_id != warthog::INF)
 		{
+      uint32_t rjp_id = jp1_id;
 			jp1_id = node_id - (jp1_cost / warthog::ONE) * map_->width();
       // update in south
-      _backwards_gval_update(jp1_id, jp1_cost, G::cur_diag_gval, 1);
+      // _backwards_gval_update(jp1_id, jp1_cost, G::cur_diag_gval, 1);
+      backwards_gval_update_NS(jp1_id, rjp_id, jp1_cost, G::cur_diag_gval, jps::SOUTH);
       if (G::cur_diag_gval + jp1_cost <= G::gval(jp1_id)) {
 			  *(((uint8_t*)&jp1_id)+3) = warthog::jps::NORTH;
         jpoints.push_back(jp1_id);
@@ -546,7 +558,8 @@ jlp::jump_northwest(
 		if(jp2_id != warthog::INF)
 		{
       // update in east
-      _backwards_gval_update(jp2_id, jp2_cost, G::cur_diag_gval, 2);
+      // _backwards_gval_update(jp2_id, jp2_cost, G::cur_diag_gval, 2);
+      backwards_gval_update_EW(jp2_id, jp2_cost, G::cur_diag_gval, jps::EAST);
       if (G::cur_diag_gval + jp2_cost <= G::gval(jp2_id)) {
         *(((uint8_t*)&jp2_id)+3) = warthog::jps::WEST;
         jpoints.push_back(jp2_id);
@@ -583,7 +596,7 @@ jlp::__jump_northwest(
     G::cur_diag_gval += ROOT_TWO;
 		node_id = node_id - mapw - 1;
 		rnode_id = rnode_id - (rmapw - 1);
-    if (iscorner[node_id])
+    // if (iscorner[node_id])
       global::query::set_corner_gv(node_id, G::cur_diag_gval);
 
     if ((!jp->v.next()) || (!jp->h.next())) {
@@ -658,10 +671,12 @@ jlp::jump_southeast(
 				jp2_id, jp2_cost);
 
 		if(jp1_id != warthog::INF)
-		{
+    {
+      uint32_t rjp_id = jp1_id;
 			jp1_id = node_id + (jp1_cost / warthog::ONE) * map_->width();
       // update in north
-      _backwards_gval_update(jp1_id, jp1_cost, G::cur_diag_gval, 0);
+      // _backwards_gval_update(jp1_id, jp1_cost, G::cur_diag_gval, 0);
+      backwards_gval_update_NS(jp1_id, rjp_id, jp1_cost, G::cur_diag_gval, jps::NORTH);
       if (G::cur_diag_gval + jp1_cost <= G::gval(jp1_id)) {
         *(((uint8_t*)&jp1_id)+3) = warthog::jps::SOUTH;
         jpoints.push_back(jp1_id);
@@ -673,7 +688,8 @@ jlp::jump_southeast(
 		if(jp2_id != warthog::INF)
 		{
       // update in west
-      _backwards_gval_update(jp2_id, jp2_cost, G::cur_diag_gval, 3);
+      // _backwards_gval_update(jp2_id, jp2_cost, G::cur_diag_gval, 3);
+      backwards_gval_update_EW(jp2_id, jp2_cost, G::cur_diag_gval, jps::WEST);
       if (G::cur_diag_gval + jp2_cost <= G::gval(jp2_id)) {
         *(((uint8_t*)&jp2_id)+3) = warthog::jps::EAST;
         jpoints.push_back(jp2_id);
@@ -710,7 +726,7 @@ jlp::__jump_southeast(
     G::cur_diag_gval += ROOT_TWO;
 		node_id = node_id + mapw + 1;
 		rnode_id = rnode_id + rmapw - 1;
-    if (iscorner[node_id])
+    // if (iscorner[node_id])
       global::query::set_corner_gv(node_id, G::cur_diag_gval);
 
     if ((!jp->v.next()) || (!jp->h.next())) {
@@ -786,9 +802,11 @@ jlp::jump_southwest(
 
 		if(jp1_id != warthog::INF)
 		{
+      uint32_t rjp_id = jp1_id;
       jp1_id = node_id + (jp1_cost / warthog::ONE) * map_->width();
       // update in north
-      _backwards_gval_update(jp1_id, jp1_cost, G::cur_diag_gval, 0);
+      // _backwards_gval_update(jp1_id, jp1_cost, G::cur_diag_gval, 0);
+      backwards_gval_update_NS(jp1_id, rjp_id, jp1_cost, G::cur_diag_gval, jps::NORTH);
       if (G::cur_diag_gval + jp1_cost <= G::gval(jp1_id)) {
         *(((uint8_t*)&jp1_id)+3) = warthog::jps::SOUTH;
         jpoints.push_back(jp1_id);
@@ -800,7 +818,8 @@ jlp::jump_southwest(
 		if(jp2_id != warthog::INF)
 		{
       // update in east
-      _backwards_gval_update(jp2_id, jp2_cost, G::cur_diag_gval, 2);
+      // _backwards_gval_update(jp2_id, jp2_cost, G::cur_diag_gval, 2);
+      backwards_gval_update_EW(jp2_id, jp2_cost, G::cur_diag_gval, jps::EAST);
       if (G::cur_diag_gval + jp2_cost <= G::gval(jp2_id)) {
         *(((uint8_t*)&jp2_id)+3) = warthog::jps::WEST;
         jpoints.push_back(jp2_id);
@@ -835,7 +854,7 @@ jlp::__jump_southwest(
     G::cur_diag_gval += ROOT_TWO;
 		node_id = node_id + mapw - 1;
 		rnode_id = rnode_id - (rmapw + 1);
-    if (iscorner[node_id])
+    // if (iscorner[node_id])
       global::query::set_corner_gv(node_id, G::cur_diag_gval);
 
     if ((!jp->v.next()) || (!jp->h.next())) {
