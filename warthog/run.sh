@@ -14,7 +14,7 @@ maps=(
   ./testcases/maps/diag-random-512.map
   ./testcases/maps/square-random-512.map
   ./testcases/maps/maze-random.map
-  ../maps/maze512/maze512-16-0.map
+  ../maps/maze512/maze512-32-0.map
 )
 
 queries=(
@@ -139,6 +139,19 @@ function small_exp() {
   done
 }
 
+function small_suboptcnt() {
+  for (( i=0; i<${#maps[@]}; i++ )); do
+    mpath=${maps[$i]}
+    mname=$(basename -- ${mpath})
+    spath=${scens[$i]}
+    out_dir="small_suboptcnt/"
+    mkdir -p ${out_dir}
+    cmd="./bin/subopt_expd_exp --query --scen ${spath} --map ${mpath} > ${out_dir}/$mname.log"
+    echo "$cmd"
+    eval "$cmd"
+  done
+}
+
 function clean() {
   rm -f data/*.jps+
   fd -e log . "output" --no-ignore -x rm
@@ -158,6 +171,7 @@ case "$1" in
   exp) exp;;
   cexp) clean && exp;;
   sexp) small_exp;;
+  ssub) small_suboptcnt;;
   csexp) clean && small_exp;;
   sgen) gen_small ;;
   gen) gen_scen ;;
