@@ -111,6 +111,7 @@ namespace query {
   extern warthog::problem_instance* pi;
   extern warthog::gridmap *map;
   extern warthog::pqueue* open;
+  extern uint32_t jump_step;
 
   inline warthog::cost_t gval(uint32_t id) {
     warthog::cost_t res = warthog::INF;

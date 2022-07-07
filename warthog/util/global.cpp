@@ -14,6 +14,7 @@ uint32_t query::goalid = warthog::INF;
 warthog::cost_t query::cur_diag_gval = warthog::INF;
 warthog::gridmap* query::map = nullptr;
 warthog::pqueue* query::open = nullptr;
+uint32_t global::query::jump_step = 0;
 
 global::statis::Log global::statis::gen(uint32_t id, warthog::cost_t gval, bool subopt) {
   global::statis::Log c;
