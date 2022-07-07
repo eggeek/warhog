@@ -461,8 +461,8 @@ jlp::__jump_northeast(
     G::cur_diag_gval += ROOT_TWO;
 		node_id = node_id - mapw + 1;
 		rnode_id = rnode_id + rmapw + 1;
-    if (iscorner[node_id])
-      global::query::set_corner_gv(node_id, G::cur_diag_gval);
+    // if (iscorner[node_id])
+    //   global::query::set_corner_gv(node_id, G::cur_diag_gval);
 
     if ((!jp->v.next()) || (!jp->h.next())) {
       jumpnode_id = warthog::INF; jumpcost = 0; return;
@@ -542,7 +542,7 @@ jlp::jump_northwest(
 
 		if(jp1_id != warthog::INF)
 		{
-      uint32_t rjp_id = jp1_id;
+      // uint32_t rjp_id = jp1_id;
 			// jp1_id = node_id - (jp1_cost / warthog::ONE) * map_->width();
       // update in south
       // _backwards_gval_update(jp1_id, jp1_cost, G::cur_diag_gval, 1);
@@ -596,8 +596,8 @@ jlp::__jump_northwest(
     G::cur_diag_gval += ROOT_TWO;
 		node_id = node_id - mapw - 1;
 		rnode_id = rnode_id - (rmapw - 1);
-    if (iscorner[node_id])
-      global::query::set_corner_gv(node_id, G::cur_diag_gval);
+    // if (iscorner[node_id])
+    //   global::query::set_corner_gv(node_id, G::cur_diag_gval);
 
     if ((!jp->v.next()) || (!jp->h.next())) {
       jumpnode_id = warthog::INF; jumpcost = 0; return;
@@ -726,8 +726,8 @@ jlp::__jump_southeast(
     G::cur_diag_gval += ROOT_TWO;
 		node_id = node_id + mapw + 1;
 		rnode_id = rnode_id + rmapw - 1;
-    if (iscorner[node_id])
-      global::query::set_corner_gv(node_id, G::cur_diag_gval);
+    // if (iscorner[node_id])
+    //   global::query::set_corner_gv(node_id, G::cur_diag_gval);
 
     if ((!jp->v.next()) || (!jp->h.next())) {
       jumpnode_id = warthog::INF; jumpcost = 0; return;
@@ -854,8 +854,8 @@ jlp::__jump_southwest(
     G::cur_diag_gval += ROOT_TWO;
 		node_id = node_id + mapw - 1;
 		rnode_id = rnode_id - (rmapw + 1);
-    if (iscorner[node_id])
-      global::query::set_corner_gv(node_id, G::cur_diag_gval);
+    // if (iscorner[node_id])
+    //   global::query::set_corner_gv(node_id, G::cur_diag_gval);
 
     if ((!jp->v.next()) || (!jp->h.next())) {
       jumpnode_id = warthog::INF; jumpcost = 0; return;
