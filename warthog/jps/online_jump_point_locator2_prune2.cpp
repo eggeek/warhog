@@ -543,7 +543,7 @@ jlp::jump_northwest(
 		if(jp1_id != warthog::INF)
 		{
       // uint32_t rjp_id = jp1_id;
-			// jp1_id = node_id - (jp1_cost / warthog::ONE) * map_->width();
+      jp1_id = node_id - (jp1_cost / warthog::ONE) * map_->width();
       // update in south
       // _backwards_gval_update(jp1_id, jp1_cost, G::cur_diag_gval, 1);
       // backwards_gval_update_NS(jp1_id, rjp_id, jp1_cost, G::cur_diag_gval, jps::SOUTH);
