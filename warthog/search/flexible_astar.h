@@ -246,16 +246,47 @@ class flexible_astar
 					   	expander_->next(n, cost_to_n))
 				{
 					nodes_touched_++;
+          // update a node from the fringe
+          warthog::cost_t gval = current->get_g() + cost_to_n;
 					if(n->get_expanded())
 					{
-						// skip neighbours already expanded
-						continue;
+            if (gval < n->get_g()) {
+              n->relax(gval, current);
+              n->set_expanded(false);
+              if (open_->contains(n)) {
+                open_->decrease_key(n);
+                #ifndef NDEBUG
+                if(verbose_)
+                {
+                  uint32_t x, y;
+                  y = (n->get_id() / expander_->mapwidth());
+                  x = n->get_id() % expander_->mapwidth();
+                  std::cerr << "  reopen updating ("<<x<<", "<<y<<")...";
+                  n->print(std::cerr);
+                  std::cerr << std::endl;
+                }
+                #endif
+              }
+              else {
+                open_->push(n);
+                #ifndef NDEBUG
+                if(verbose_)
+                {
+                  uint32_t x, y;
+                  y = (n->get_id() / expander_->mapwidth());
+                  x = n->get_id() % expander_->mapwidth();
+                  std::cerr << "  reopen generating ("<<x<<", "<<y<<")...";
+                  n->print(std::cerr);
+                  std::cerr << std::endl;
+                }
+                #endif
+						    nodes_generated_++;
+              }
+            }
+            else continue; // skip neighbours already expanded 
 					}
-
-					if(open_->contains(n))
+          else if(open_->contains(n))
 					{
-						// update a node from the fringe
-						warthog::cost_t gval = current->get_g() + cost_to_n;
 						if(gval < n->get_g())
 						{
 							n->relax(gval, current);

@@ -138,8 +138,9 @@ namespace query {
       // n has been generated and pushed in queue
       if (g < n->get_g()) {
         // and the current g is better, so n can be pruned.
-        n->relax(g, nullptr);
-        open->decrease_key(n); // this is to maintain the consistant heuristic
+        // n->relax(g, nullptr);
+        n->set_expanded(true);
+        // open->decrease_key(n); // this is to maintain the consistant heuristic
         // later when n is popped out, if g > 0 and parent is null,
         // we won't expand this node.
       }
