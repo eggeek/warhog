@@ -242,11 +242,13 @@ class online_jump_point_locator2_prune2
     inline void backwards_gval_update_EW(uint32_t jpid,
         cost_t jpc, cost_t pgv, jps::direction dir) {
       cost_t cur_cost = 0, nxt_cost;
+      int cnt = 0;
       uint32_t nxtjp;
       while (true) {
         nxtjp = jpid;
         _backwards_gval_update_online_EW(nxtjp, nxt_cost, dir);
-        if (cur_cost + nxt_cost >= jpc) break;
+        cnt++;
+        if (cnt == 2 || cur_cost + nxt_cost >= jpc) break;
         cur_cost += nxt_cost;
         global::query::set_corner_gv(nxtjp, pgv+jpc-cur_cost);
         jpid = nxtjp;
