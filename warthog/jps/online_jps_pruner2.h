@@ -76,7 +76,7 @@ struct Constraint2 {
     // next diag move:
     // 1. passed the intersection;
     // 2. cardinal move until the jump limit is better reached from a;
-    if (i == d || i == L) {
+    if (i >= d || i >= L) {
       deactivate();
       return true;
     }
